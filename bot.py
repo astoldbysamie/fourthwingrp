@@ -65,6 +65,154 @@ async def healing(ctx):
     name, desc = options[roll - 1]
     await ctx.send(f"**Healing Result**\nRoll: {roll}\n{name}\n{desc}")
 
+# -----------------------------
+# HELPERS (needed for commands)
+# -----------------------------
+def find_existing_assignment(data, name):
+    target = name.lower().strip()
+
+    for wing_name, wing in data.items():
+        if wing["wingleader"] and wing["wingleader"].lower() == target:
+            return True
+
+        for section in wing["sections"].values():
+            if section["section_leader"] and section["section_leader"].lower() == target:
+                return True
+
+            for squad in section["squads"].values():
+                if squad["squad_leader"] and squad["squad_leader"].lower() == target:
+                    return True
+                if squad["executive_squad_leader"] and squad["executive_squad_leader"].lower() == target:
+                    return True
+                if target in [c.lower() for c in squad["cadets"]]:
+                    return True
+
+    return False
+
+
+def get_open_slots(data):
+    slots = []
+
+    for wing_name, wing in data.items():
+        if wing["wingleader"] is None:
+            slots.append(("Wingleader", wing_name))
+
+        for section_name, section in wing["sections"].items():
+            if section["section_leader"] is None:
+                slots.append(("Section Leader", wing_name, section_name))
+
+            for squad_name, squad in section["squads"].items():
+                if squad["squad_leader"] is None:
+                    slots.append(("Squad Leader", wing_name, section_name, squad_name))
+
+                if squad["executive_squad_leader"] is None:
+                    slots.append(("Executive Squad Leader", wing_name, section_name, squad_name))
+
+                if len(squad["cadets"]) < 3:
+                    slots.append(("Cadet", wing_name, section_name, squad_name))
+
+    return slots
+
+
+def assign_slot(data, name, slot):
+    role = slot[0]
+    wing = data[slot[1]]
+
+    if role == "Wingleader":
+        wing["wingleader"] = name
+
+    elif role == "Section Leader":
+        wing["sections"][slot[2]]["section_leader"] = name
+
+    elif role == "Squad Leader":
+        wing["sections"][slot[2]]["squads"][slot[3]]["squad_leader"] = name
+
+    elif role == "Executive Squad Leader":
+        wing["sections"][slot[2]]["squads"][slot[3]]["executive_squad_leader"] = name
+
+    elif role == "Cadet":
+        wing["sections"][slot[2]]["squads"][slot[3]]["cadets"].append(name)
+
+
+def format_assignment(name, slot):
+    role = slot[0]
+    path = " → ".join(slot[1:])
+    return f"**{name}** assigned as **{role}** in **{path}**."
+
+
+def format_taken(data):
+    lines = []
+
+    for wing_name, wing in data.items():
+        wing_lines = []
+
+        if wing["wingleader"]:
+            wing_lines.append(f"Wingleader: {wing['wingleader']}")
+
+        for section_name, section in wing["sections"].items():
+            if section["section_leader"]:
+                wing_lines.append(f"{section_name} Section Leader: {section['section_leader']}")
+
+            for squad_name, squad in section["squads"].items():
+                if squad["squad_leader"]:
+                    wing_lines.append(f"{section_name} {squad_name} Leader: {squad['squad_leader']}")
+
+                if squad["executive_squad_leader"]:
+                    wing_lines.append(f"{section_name} {squad_name} Exec: {squad['executive_squad_leader']}")
+
+                if squad["cadets"]:
+                    wing_lines.append(f"{section_name} {squad_name} Cadets: {', '.join(squad['cadets'])}")
+
+        if wing_lines:
+            lines.append(f"**{wing_name}**")
+            lines.extend(wing_lines)
+            lines.append("")
+
+    return "\n".join(lines) if lines else "No assignments yet."
+
+
+# -----------------------------
+# COMMANDS
+# -----------------------------
+@bot.command()
+async def assignrider(ctx, *, name: str):
+    global assignment_data
+
+    if find_existing_assignment(assignment_data, name):
+        await ctx.send(f"{name} is already assigned.")
+        return
+
+    slots = get_open_slots(assignment_data)
+
+    if not slots:
+        await ctx.send("No slots left.")
+        return
+
+    slot = random.choice(slots)
+    assign_slot(assignment_data, name, slot)
+    save_data(assignment_data)
+
+    await ctx.send(format_assignment(name, slot))
+
+
+@bot.command()
+async def riderslots(ctx):
+    output = format_taken(assignment_data)
+
+    if len(output) <= 2000:
+        await ctx.send(output)
+    else:
+        for i in range(0, len(output), 2000):
+            await ctx.send(output[i:i+2000])
+
+
+@bot.command()
+async def resetriders(ctx):
+    global assignment_data
+    assignment_data = json.loads(json.dumps(DEFAULT_STRUCTURE))
+    save_data(assignment_data)
+    await ctx.send("Riders reset.")
+
 @bot.command()
 async def dragonspeak(ctx):
     approval = [
