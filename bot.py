@@ -34,6 +34,10 @@ intents.members = True
 # -----------------------------
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+infantry_assignments = {}
+scribe_assignments = {}
+healer_assignments = {}
+
 # -----------------------------
 # FILES
 # -----------------------------
@@ -385,7 +389,92 @@ async def threshing(ctx):
         f"Dragon Color: **{random.choice(dragon_colors)}**\n"
         f"Tail: **{random.choice(dragon_tails)}**"
     )
+@bot.command()
+async def manualinfantry(ctx, *, arg):
+    try:
+        name, role, division = [x.strip() for x in arg.split("|")]
 
+        infantry_assignments[name] = {
+            "role": role,
+            "division": division
+        }
+
+        await ctx.send(
+            f"⚔️ **Infantry Assigned**\n"
+            f"Name: {name}\n"
+            f"Role: {role}\n"
+            f"Division: {division}"
+        )
+
+    except:
+        await ctx.send("❌ Format: !manualinfantry name | role | division")
+
+
+@bot.command()
+async def manualscribe(ctx, *, arg):
+    try:
+        name, role, order = [x.strip() for x in arg.split("|")]
+
+        scribe_assignments[name] = {
+            "role": role,
+            "order": order
+        }
+
+        await ctx.send(
+            f"📚 **Scribe Assigned**\n"
+            f"Name: {name}\n"
+            f"Role: {role}\n"
+            f"Order: {order}"
+        )
+
+    except:
+        await ctx.send("❌ Format: !manualscribe name | role | order")
+
+
+@bot.command()
+async def manualhealer(ctx, *, arg):
+    try:
+        name, role, circle = [x.strip() for x in arg.split("|")]
+
+        healer_assignments[name] = {
+            "role": role,
+            "circle": circle
+        }
+
+        await ctx.send(
+            f"🌿 **Healer Assigned**\n"
+            f"Name: {name}\n"
+            f"Role: {role}\n"
+            f"Circle: {circle}"
+        )
+
+    except:
+        await ctx.send("❌ Format: !manualhealer name | role | circle")
+        @bot.command()
+async def removeinfantry(ctx, *, name):
+    if name in infantry_assignments:
+        del infantry_assignments[name]
+        await ctx.send(f"⚔️ Removed {name} from Infantry.")
+    else:
+        await ctx.send(f"❌ {name} not found in Infantry assignments.")
+
+
+@bot.command()
+async def removescribe(ctx, *, name):
+    if name in scribe_assignments:
+        del scribe_assignments[name]
+        await ctx.send(f"📚 Removed {name} from Scribes.")
+    else:
+        await ctx.send(f"❌ {name} not found in Scribe assignments.")
+
+
+@bot.command()
+async def removehealer(ctx, *, name):
+    if name in healer_assignments:
+        del healer_assignments[name]
+        await ctx.send(f"🌿 Removed {name} from Healers.")
+    else:
+        await ctx.send(f"❌ {name} not found in Healer assignments.")
 
 @bot.command()
 async def infantry(ctx):
