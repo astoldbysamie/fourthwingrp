@@ -333,8 +333,8 @@ async def roll(ctx, *, dice: str):
     mod_text = f"{mod:+d}" if mod else "+0"
     await ctx.send(f"🎲 Rolls: {rolls}\nSubtotal: {sum(rolls)}\nModifier: {mod_text}\n**Total: {total}**")
 
-TOKEN = os.getenv("DISCORD_BOT_TOKEN")
+TOKEN = os.getenv("DISCORD_TOKEN")
 if not TOKEN:
-    raise ValueError("DISCORD_BOT_TOKEN is missing.")
+    raise ValueError("DISCORD_TOKEN is missing.")
 
 bot.run(TOKEN)
