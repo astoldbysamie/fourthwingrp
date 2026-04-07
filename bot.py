@@ -1419,12 +1419,12 @@ async def rphelp(ctx):
         "**✨ Signets**\n"
         "`!signet` → Manifest your signet\n\n"
 
-        "**⚔️ Quadrants**\n"
-        "`!infantry` → Roll combat specialty\n"
-        "`!scribe` → Roll subject specialty\n"
-        "`!healer` → Roll healer discipline\n\n"
+        "**The Quadrants**\n"
+        "`!infantry` → Roll for combat specialty\n"
+        "`!scribe` → Roll for subject specialty\n"
+        "`!healer` → Roll for healer discipline\n\n"
 
-        "**🪽 Rider Formation**\n"
+        "**🐉  Rider Formation**\n"
         "`!assignrider name` → Assign a rider to a random open slot\n"
         "`!manualassign name | role | wing | section | squad` → Manually assign a rider\n"
         "`!removerider name` → Remove one rider\n"
@@ -1446,7 +1446,7 @@ async def rphelp(ctx):
         "`!scribeslots` → Show filled scribe slots\n"
         "`!resetscribes` → Reset scribe formation\n\n"
 
-        "**🩺 Healer Formation**\n"
+        "**:herb:  Healer Formation**\n"
         "`!assignhealer name` → Assign healer rank\n"
         "`!removehealer name` → Remove healer assignment\n"
         "`!reassignhealer name` → Reroll healer rank\n"
