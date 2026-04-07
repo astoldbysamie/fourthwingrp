@@ -34,10 +34,6 @@ intents.members = True
 # -----------------------------
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-infantry_assignments = {}
-scribe_assignments = {}
-healer_assignments = {}
-
 # -----------------------------
 # FILES
 # -----------------------------
@@ -331,11 +327,9 @@ def load_json_file(filename, default_data):
             return json.load(f)
     return copy.deepcopy(default_data)
 
-
 def save_json_file(filename, data):
     with open(filename, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4)
-
 
 rider_data = load_json_file(RIDER_FILE, DEFAULT_RIDER_STRUCTURE)
 infantry_data = load_json_file(INFANTRY_FILE, DEFAULT_INFANTRY_STRUCTURE)
@@ -354,7 +348,6 @@ def normalize_name(name: str) -> str:
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user}")
-
 
 @bot.event
 async def on_message(message):
@@ -389,92 +382,6 @@ async def threshing(ctx):
         f"Dragon Color: **{random.choice(dragon_colors)}**\n"
         f"Tail: **{random.choice(dragon_tails)}**"
     )
-@bot.command()
-async def manualinfantry(ctx, *, arg):
-    try:
-        name, role, division = [x.strip() for x in arg.split("|")]
-
-        infantry_assignments[name] = {
-            "role": role,
-            "division": division
-        }
-
-        await ctx.send(
-            f"⚔️ **Infantry Assigned**\n"
-            f"Name: {name}\n"
-            f"Role: {role}\n"
-            f"Division: {division}"
-        )
-
-    except:
-        await ctx.send("❌ Format: !manualinfantry name | role | division")
-
-
-@bot.command()
-async def manualscribe(ctx, *, arg):
-    try:
-        name, role, order = [x.strip() for x in arg.split("|")]
-
-        scribe_assignments[name] = {
-            "role": role,
-            "order": order
-        }
-
-        await ctx.send(
-            f"📚 **Scribe Assigned**\n"
-            f"Name: {name}\n"
-            f"Role: {role}\n"
-            f"Order: {order}"
-        )
-
-    except:
-        await ctx.send("❌ Format: !manualscribe name | role | order")
-
-
-@bot.command()
-async def manualhealer(ctx, *, arg):
-    try:
-        name, role, circle = [x.strip() for x in arg.split("|")]
-
-        healer_assignments[name] = {
-            "role": role,
-            "circle": circle
-        }
-
-        await ctx.send(
-            f"🌿 **Healer Assigned**\n"
-            f"Name: {name}\n"
-            f"Role: {role}\n"
-            f"Circle: {circle}"
-        )
-
-    except:
-        await ctx.send("❌ Format: !manualhealer name | role | circle")
-        @bot.command()
-async def removeinfantry(ctx, *, name):
-    if name in infantry_assignments:
-        del infantry_assignments[name]
-        await ctx.send(f"⚔️ Removed {name} from Infantry.")
-    else:
-        await ctx.send(f"❌ {name} not found in Infantry assignments.")
-
-
-@bot.command()
-async def removescribe(ctx, *, name):
-    if name in scribe_assignments:
-        del scribe_assignments[name]
-        await ctx.send(f"📚 Removed {name} from Scribes.")
-    else:
-        await ctx.send(f"❌ {name} not found in Scribe assignments.")
-
-
-@bot.command()
-async def removehealer(ctx, *, name):
-    if name in healer_assignments:
-        del healer_assignments[name]
-        await ctx.send(f"🌿 Removed {name} from Healers.")
-    else:
-        await ctx.send(f"❌ {name} not found in Healer assignments.")
 
 @bot.command()
 async def infantry(ctx):
@@ -497,7 +404,6 @@ async def infantry(ctx):
         f"{desc}"
     )
 
-
 @bot.command()
 async def scribe(ctx):
     specialties = [
@@ -519,7 +425,6 @@ async def scribe(ctx):
         f"{desc}"
     )
 
-
 @bot.command()
 async def healer(ctx):
     disciplines = [
@@ -540,7 +445,6 @@ async def healer(ctx):
         f"Healer Discipline: **{name}**\n"
         f"{desc}"
     )
-
 
 @bot.command()
 async def dragonspeak(ctx):
@@ -567,7 +471,6 @@ async def dragonspeak(ctx):
     else:
         await ctx.send(f"**Dragon Disapproval**\n{random.choice(disapproval)}")
 
-
 @bot.command()
 async def dragonaction(ctx):
     actions = [
@@ -584,7 +487,6 @@ async def dragonaction(ctx):
     ]
 
     await ctx.send(f"**Dragon Action**\n{random.choice(actions)}")
-
 
 @bot.command()
 async def signet(ctx):
@@ -623,7 +525,6 @@ async def signet(ctx):
 # DICE COMMANDS
 # -----------------------------
 VALID_DICE = [4, 6, 8, 10, 12, 20, 100]
-
 
 @bot.command()
 async def roll(ctx, dice: str = "d20"):
@@ -674,42 +575,35 @@ async def roll(ctx, dice: str = "d20"):
         f"Total: **{subtotal}{mod_text} = {total}**"
     )
 
-
 @bot.command()
 async def d4(ctx):
     result = random.randint(1, 4)
     await ctx.send(f"**d4 Roll**\nYou rolled: **{result}**")
-
 
 @bot.command()
 async def d6(ctx):
     result = random.randint(1, 6)
     await ctx.send(f"**d6 Roll**\nYou rolled: **{result}**")
 
-
 @bot.command()
 async def d8(ctx):
     result = random.randint(1, 8)
     await ctx.send(f"**d8 Roll**\nYou rolled: **{result}**")
-
 
 @bot.command()
 async def d10(ctx):
     result = random.randint(1, 10)
     await ctx.send(f"**d10 Roll**\nYou rolled: **{result}**")
 
-
 @bot.command()
 async def d12(ctx):
     result = random.randint(1, 12)
     await ctx.send(f"**d12 Roll**\nYou rolled: **{result}**")
 
-
 @bot.command()
 async def d20(ctx):
     result = random.randint(1, 20)
     await ctx.send(f"**d20 Roll**\nYou rolled: **{result}**")
-
 
 @bot.command()
 async def d100(ctx):
@@ -748,7 +642,6 @@ def find_existing_rider_assignment(data, name):
 
     return False
 
-
 def get_open_rider_slots(data):
     slots = []
 
@@ -777,7 +670,6 @@ def get_open_rider_slots(data):
                     slots.append(("Cadet", wing_name, section_name, squad_name))
 
     return slots
-
 
 def assign_rider_slot(data, name, slot):
     role = slot[0]
@@ -812,7 +704,6 @@ def assign_rider_slot(data, name, slot):
         section_name = slot[2]
         squad_name = slot[3]
         wing["sections"][section_name]["squads"][squad_name]["cadets"].append(name)
-
 
 def manual_assign_rider_slot(data, name, role, wing_name, section_name=None, squad_name=None):
     if wing_name not in data:
@@ -880,12 +771,10 @@ def manual_assign_rider_slot(data, name, role, wing_name, section_name=None, squ
 
     return "That role is not valid."
 
-
 def format_rider_assignment(name, slot):
     role = slot[0]
     path = " → ".join(slot[1:])
     return f"**{name}** assigned as **{role}** in **{path}**."
-
 
 def format_manual_rider_assignment(name, role, wing_name, section_name=None, squad_name=None):
     parts = [wing_name]
@@ -895,7 +784,6 @@ def format_manual_rider_assignment(name, role, wing_name, section_name=None, squ
         parts.append(squad_name)
 
     return f"**{name}** manually assigned as **{role}** in **{' → '.join(parts)}**."
-
 
 def remove_rider(data, name):
     target = normalize_name(name)
@@ -933,7 +821,6 @@ def remove_rider(data, name):
                         return f"Removed **{name}** from **Cadet** in **{wing_name} → {section_name} → {squad_name}**."
 
     return None
-
 
 def format_taken_riders(data):
     lines = []
@@ -995,7 +882,6 @@ def find_name_in_simple_structure(data, name, lowest_plural):
 
     return False
 
-
 def get_simple_open_slots(data, highest_roles, group_roles, lowest_singular, lowest_plural):
     slots = []
 
@@ -1016,7 +902,6 @@ def get_simple_open_slots(data, highest_roles, group_roles, lowest_singular, low
 
     return slots
 
-
 def assign_simple_slot(data, name, slot, lowest_singular, lowest_plural):
     role, group_name = slot
 
@@ -1028,7 +913,6 @@ def assign_simple_slot(data, name, slot, lowest_singular, lowest_plural):
         data[group_name][lowest_plural].append(name)
     else:
         data[group_name][role] = name
-
 
 def remove_from_simple_structure(data, name, lowest_plural):
     target = normalize_name(name)
@@ -1056,11 +940,9 @@ def remove_from_simple_structure(data, name, lowest_plural):
 
     return None
 
-
 def format_hidden_assignment(name, slot):
     role = slot[0]
     return f"**{name}** assigned as **{role}**."
-
 
 def format_simple_taken(data, lowest_label):
     lines = []
@@ -1097,6 +979,36 @@ def format_simple_taken(data, lowest_label):
     return "\n".join(lines).strip() if lines else "No assignments yet."
 
 # -----------------------------
+# SIMPLE MANUAL ASSIGN HELPERS
+# -----------------------------
+def manual_assign_simple(data, name, role, group_name, highest_roles, group_roles, lowest_singular, lowest_plural):
+    if role in highest_roles:
+        if data["_chain"][role] is not None:
+            return f"There is already someone assigned as **{role}**."
+        data["_chain"][role] = name
+        return None
+
+    if group_name is None:
+        return "That role needs a division/order/circle."
+
+    if group_name not in data or group_name == "_chain":
+        return "That group does not exist."
+
+    if role == lowest_singular:
+        if len(data[group_name][lowest_plural]) >= 3:
+            return f"**{group_name}** already has 3 {lowest_plural.lower()}."
+        data[group_name][lowest_plural].append(name)
+        return None
+
+    if role in group_roles:
+        if data[group_name][role] is not None:
+            return f"**{group_name}** already has a **{role}**."
+        data[group_name][role] = name
+        return None
+
+    return "That role is not valid."
+
+# -----------------------------
 # RIDER FORMATION COMMANDS
 # -----------------------------
 @bot.command()
@@ -1118,7 +1030,6 @@ async def assignrider(ctx, *, name: str):
     save_json_file(RIDER_FILE, rider_data)
 
     await ctx.send(format_rider_assignment(name, slot))
-
 
 @bot.command()
 async def manualassign(ctx, *, args: str):
@@ -1159,7 +1070,6 @@ async def manualassign(ctx, *, args: str):
     save_json_file(RIDER_FILE, rider_data)
     await ctx.send(format_manual_rider_assignment(name, role, wing_name, section_name, squad_name))
 
-
 @bot.command()
 async def removerider(ctx, *, name: str):
     global rider_data
@@ -1172,7 +1082,6 @@ async def removerider(ctx, *, name: str):
 
     save_json_file(RIDER_FILE, rider_data)
     await ctx.send(result)
-
 
 @bot.command()
 async def reassignrider(ctx, *, name: str):
@@ -1197,7 +1106,6 @@ async def reassignrider(ctx, *, name: str):
 
     await ctx.send(f"{removed}\n{format_rider_assignment(name, slot)}")
 
-
 @bot.command()
 async def riderslots(ctx):
     output = format_taken_riders(rider_data)
@@ -1207,7 +1115,6 @@ async def riderslots(ctx):
     else:
         for i in range(0, len(output), 2000):
             await ctx.send(output[i:i + 2000])
-
 
 @bot.command()
 async def resetriders(ctx):
@@ -1245,6 +1152,41 @@ async def assigninfantry(ctx, *, name: str):
 
     await ctx.send(format_hidden_assignment(name, slot))
 
+@bot.command()
+async def manualinfantry(ctx, *, args: str):
+    global infantry_data
+
+    parts = [p.strip() for p in args.split("|")]
+
+    if len(parts) < 2:
+        await ctx.send("Use: `!manualinfantry name | role | division`")
+        return
+
+    name = parts[0]
+    role = parts[1]
+    division = parts[2] if len(parts) >= 3 and parts[2] else None
+
+    if find_name_in_simple_structure(infantry_data, name, "Cadets"):
+        await ctx.send(f"**{name}** is already assigned in infantry.")
+        return
+
+    error = manual_assign_simple(
+        infantry_data,
+        name,
+        role,
+        division,
+        ["High Commander", "Commander"],
+        ["Captain", "Sergeant", "Corporal", "Soldier"],
+        "Cadet",
+        "Cadets"
+    )
+
+    if error:
+        await ctx.send(error)
+        return
+
+    save_json_file(INFANTRY_FILE, infantry_data)
+    await ctx.send(f"⚔️ **{name}** manually assigned as **{role}**.")
 
 @bot.command()
 async def removeinfantry(ctx, *, name: str):
@@ -1258,7 +1200,6 @@ async def removeinfantry(ctx, *, name: str):
 
     save_json_file(INFANTRY_FILE, infantry_data)
     await ctx.send(result)
-
 
 @bot.command()
 async def reassigninfantry(ctx, *, name: str):
@@ -1289,7 +1230,6 @@ async def reassigninfantry(ctx, *, name: str):
 
     await ctx.send(f"{removed}\n{format_hidden_assignment(name, slot)}")
 
-
 @bot.command()
 async def infantryslots(ctx):
     output = format_simple_taken(infantry_data, "Cadets")
@@ -1299,7 +1239,6 @@ async def infantryslots(ctx):
     else:
         for i in range(0, len(output), 2000):
             await ctx.send(output[i:i + 2000])
-
 
 @bot.command()
 async def resetinfantry(ctx):
@@ -1337,6 +1276,41 @@ async def assignscribe(ctx, *, name: str):
 
     await ctx.send(format_hidden_assignment(name, slot))
 
+@bot.command()
+async def manualscribe(ctx, *, args: str):
+    global scribe_data
+
+    parts = [p.strip() for p in args.split("|")]
+
+    if len(parts) < 2:
+        await ctx.send("Use: `!manualscribe name | role | order`")
+        return
+
+    name = parts[0]
+    role = parts[1]
+    order = parts[2] if len(parts) >= 3 and parts[2] else None
+
+    if find_name_in_simple_structure(scribe_data, name, "Scribes"):
+        await ctx.send(f"**{name}** is already assigned in the scribes quadrant.")
+        return
+
+    error = manual_assign_simple(
+        scribe_data,
+        name,
+        role,
+        order,
+        ["Grand Maester", "Head Archivist"],
+        ["Master Scholar", "Curator", "Archivist", "Senior Scribe"],
+        "Scribe",
+        "Scribes"
+    )
+
+    if error:
+        await ctx.send(error)
+        return
+
+    save_json_file(SCRIBE_FILE, scribe_data)
+    await ctx.send(f"📚 **{name}** manually assigned as **{role}**.")
 
 @bot.command()
 async def removescribe(ctx, *, name: str):
@@ -1350,7 +1324,6 @@ async def removescribe(ctx, *, name: str):
 
     save_json_file(SCRIBE_FILE, scribe_data)
     await ctx.send(result)
-
 
 @bot.command()
 async def reassignscribe(ctx, *, name: str):
@@ -1381,7 +1354,6 @@ async def reassignscribe(ctx, *, name: str):
 
     await ctx.send(f"{removed}\n{format_hidden_assignment(name, slot)}")
 
-
 @bot.command()
 async def scribeslots(ctx):
     output = format_simple_taken(scribe_data, "Scribes")
@@ -1391,7 +1363,6 @@ async def scribeslots(ctx):
     else:
         for i in range(0, len(output), 2000):
             await ctx.send(output[i:i + 2000])
-
 
 @bot.command()
 async def resetscribes(ctx):
@@ -1429,6 +1400,41 @@ async def assignhealer(ctx, *, name: str):
 
     await ctx.send(format_hidden_assignment(name, slot))
 
+@bot.command()
+async def manualhealer(ctx, *, args: str):
+    global healer_data
+
+    parts = [p.strip() for p in args.split("|")]
+
+    if len(parts) < 2:
+        await ctx.send("Use: `!manualhealer name | role | circle`")
+        return
+
+    name = parts[0]
+    role = parts[1]
+    circle = parts[2] if len(parts) >= 3 and parts[2] else None
+
+    if find_name_in_simple_structure(healer_data, name, "Trainees"):
+        await ctx.send(f"**{name}** is already assigned in healers.")
+        return
+
+    error = manual_assign_simple(
+        healer_data,
+        name,
+        role,
+        circle,
+        ["Arch Healer", "Healer"],
+        ["Senior Practitioner", "Practitioner", "Medic", "Acolyte"],
+        "Trainee",
+        "Trainees"
+    )
+
+    if error:
+        await ctx.send(error)
+        return
+
+    save_json_file(HEALER_FILE, healer_data)
+    await ctx.send(f"🌿 **{name}** manually assigned as **{role}**.")
 
 @bot.command()
 async def removehealer(ctx, *, name: str):
@@ -1442,7 +1448,6 @@ async def removehealer(ctx, *, name: str):
 
     save_json_file(HEALER_FILE, healer_data)
     await ctx.send(result)
-
 
 @bot.command()
 async def reassignhealer(ctx, *, name: str):
@@ -1473,7 +1478,6 @@ async def reassignhealer(ctx, *, name: str):
 
     await ctx.send(f"{removed}\n{format_hidden_assignment(name, slot)}")
 
-
 @bot.command()
 async def healerslots(ctx):
     output = format_simple_taken(healer_data, "Trainees")
@@ -1483,7 +1487,6 @@ async def healerslots(ctx):
     else:
         for i in range(0, len(output), 2000):
             await ctx.send(output[i:i + 2000])
-
 
 @bot.command()
 async def resethealers(ctx):
@@ -1509,11 +1512,11 @@ async def rphelp(ctx):
         "`!signet` → Manifest your signet\n\n"
 
         "**The Quadrants**\n"
-        "`!infantry` → Roll for combat specialty\n"
-        "`!scribe` → Roll for subject specialty\n"
-        "`!healer` → Roll for healer discipline\n\n"
+        "`!infantry` → Roll for a combat specialty\n"
+        "`!scribe` → Roll for a subject specialty\n"
+        "`!healer` → Roll for a healer discipline\n\n"
 
-        "**🐉  Rider Formation**\n"
+        "**🐉 Rider Formation**\n"
         "`!assignrider name` → Assign a rider to a random open slot\n"
         "`!manualassign name | role | wing | section | squad` → Manually assign a rider\n"
         "`!removerider name` → Remove one rider\n"
@@ -1523,6 +1526,7 @@ async def rphelp(ctx):
 
         "**⚔️ Infantry Formation**\n"
         "`!assigninfantry name` → Assign infantry rank\n"
+        "`!manualinfantry name | role | division` → Manually assign infantry rank\n"
         "`!removeinfantry name` → Remove infantry assignment\n"
         "`!reassigninfantry name` → Reroll infantry rank\n"
         "`!infantryslots` → Show filled infantry slots\n"
@@ -1530,13 +1534,15 @@ async def rphelp(ctx):
 
         "**📚 Scribe Formation**\n"
         "`!assignscribe name` → Assign scribe rank\n"
+        "`!manualscribe name | role | order` → Manually assign scribe rank\n"
         "`!removescribe name` → Remove scribe assignment\n"
         "`!reassignscribe name` → Reroll scribe rank\n"
         "`!scribeslots` → Show filled scribe slots\n"
         "`!resetscribes` → Reset scribe formation\n\n"
 
-        "**:herb:  Healer Formation**\n"
+        "**🌿 Healer Formation**\n"
         "`!assignhealer name` → Assign healer rank\n"
+        "`!manualhealer name | role | circle` → Manually assign healer rank\n"
         "`!removehealer name` → Remove healer assignment\n"
         "`!reassignhealer name` → Reroll healer rank\n"
         "`!healerslots` → Show filled healer slots\n"
