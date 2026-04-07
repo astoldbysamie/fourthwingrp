@@ -35,11 +35,17 @@ intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # -----------------------------
+# FILES
+# -----------------------------
+RIDER_FILE = "rider_formation.json"
+INFANTRY_FILE = "infantry_formation.json"
+SCRIBE_FILE = "scribe_formation.json"
+HEALER_FILE = "healer_formation.json"
+
+# -----------------------------
 # RIDER FORMATION DATA
 # -----------------------------
-FORMATION_FILE = "rider_formation.json"
-
-DEFAULT_STRUCTURE = {
+DEFAULT_RIDER_STRUCTURE = {
     "First Wing": {
         "wingleader": "genevieve nguyen",
         "executive_officer": None,
@@ -198,20 +204,145 @@ DEFAULT_STRUCTURE = {
     }
 }
 
+# -----------------------------
+# INFANTRY FORMATION DATA
+# -----------------------------
+DEFAULT_INFANTRY_STRUCTURE = {
+    "_chain": {
+        "High Commander": None,
+        "Commander": None
+    },
+    "First Division": {
+        "Captain": None,
+        "Sergeant": None,
+        "Corporal": None,
+        "Soldier": None,
+        "Cadets": []
+    },
+    "Second Division": {
+        "Captain": None,
+        "Sergeant": None,
+        "Corporal": None,
+        "Soldier": None,
+        "Cadets": []
+    },
+    "Third Division": {
+        "Captain": None,
+        "Sergeant": None,
+        "Corporal": None,
+        "Soldier": None,
+        "Cadets": []
+    },
+    "Fourth Division": {
+        "Captain": None,
+        "Sergeant": None,
+        "Corporal": None,
+        "Soldier": None,
+        "Cadets": []
+    }
+}
 
-def load_formation_data():
-    if os.path.exists(FORMATION_FILE):
-        with open(FORMATION_FILE, "r", encoding="utf-8") as f:
+# -----------------------------
+# SCRIBE FORMATION DATA
+# -----------------------------
+DEFAULT_SCRIBE_STRUCTURE = {
+    "_chain": {
+        "Grand Maester": None,
+        "Head Archivist": None
+    },
+    "First Order": {
+        "Master Scholar": None,
+        "Curator": None,
+        "Archivist": None,
+        "Senior Scribe": None,
+        "Scribes": []
+    },
+    "Second Order": {
+        "Master Scholar": None,
+        "Curator": None,
+        "Archivist": None,
+        "Senior Scribe": None,
+        "Scribes": []
+    },
+    "Third Order": {
+        "Master Scholar": None,
+        "Curator": None,
+        "Archivist": None,
+        "Senior Scribe": None,
+        "Scribes": []
+    },
+    "Fourth Order": {
+        "Master Scholar": None,
+        "Curator": None,
+        "Archivist": None,
+        "Senior Scribe": None,
+        "Scribes": []
+    }
+}
+
+# -----------------------------
+# HEALER FORMATION DATA
+# -----------------------------
+DEFAULT_HEALER_STRUCTURE = {
+    "_chain": {
+        "Arch Healer": None,
+        "Healer": None
+    },
+    "First Circle": {
+        "Senior Practitioner": None,
+        "Practitioner": None,
+        "Medic": None,
+        "Acolyte": None,
+        "Trainees": []
+    },
+    "Second Circle": {
+        "Senior Practitioner": None,
+        "Practitioner": None,
+        "Medic": None,
+        "Acolyte": None,
+        "Trainees": []
+    },
+    "Third Circle": {
+        "Senior Practitioner": None,
+        "Practitioner": None,
+        "Medic": None,
+        "Acolyte": None,
+        "Trainees": []
+    },
+    "Fourth Circle": {
+        "Senior Practitioner": None,
+        "Practitioner": None,
+        "Medic": None,
+        "Acolyte": None,
+        "Trainees": []
+    }
+}
+
+# -----------------------------
+# JSON HELPERS
+# -----------------------------
+def load_json_file(filename, default_data):
+    if os.path.exists(filename):
+        with open(filename, "r", encoding="utf-8") as f:
             return json.load(f)
-    return copy.deepcopy(DEFAULT_STRUCTURE)
+    return copy.deepcopy(default_data)
 
 
-def save_formation_data():
-    with open(FORMATION_FILE, "w", encoding="utf-8") as f:
-        json.dump(assignment_data, f, indent=4)
+def save_json_file(filename, data):
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4)
 
 
-assignment_data = load_formation_data()
+rider_data = load_json_file(RIDER_FILE, DEFAULT_RIDER_STRUCTURE)
+infantry_data = load_json_file(INFANTRY_FILE, DEFAULT_INFANTRY_STRUCTURE)
+scribe_data = load_json_file(SCRIBE_FILE, DEFAULT_SCRIBE_STRUCTURE)
+healer_data = load_json_file(HEALER_FILE, DEFAULT_HEALER_STRUCTURE)
+
+# -----------------------------
+# BASIC HELPERS
+# -----------------------------
+def normalize_name(name: str) -> str:
+    return name.lower().strip()
 
 # -----------------------------
 # EVENTS
@@ -499,11 +630,7 @@ async def d100(ctx):
 # -----------------------------
 # RIDER FORMATION HELPERS
 # -----------------------------
-def normalize_name(name: str) -> str:
-    return name.lower().strip()
-
-
-def find_existing_assignment(data, name):
+def find_existing_rider_assignment(data, name):
     target = normalize_name(name)
 
     for wing_name, wing in data.items():
@@ -533,7 +660,7 @@ def find_existing_assignment(data, name):
     return False
 
 
-def get_open_slots(data):
+def get_open_rider_slots(data):
     slots = []
 
     for wing_name, wing in data.items():
@@ -563,7 +690,7 @@ def get_open_slots(data):
     return slots
 
 
-def assign_slot(data, name, slot):
+def assign_rider_slot(data, name, slot):
     role = slot[0]
     wing_name = slot[1]
     wing = data[wing_name]
@@ -598,7 +725,7 @@ def assign_slot(data, name, slot):
         wing["sections"][section_name]["squads"][squad_name]["cadets"].append(name)
 
 
-def manual_assign_slot(data, name, role, wing_name, section_name=None, squad_name=None):
+def manual_assign_rider_slot(data, name, role, wing_name, section_name=None, squad_name=None):
     if wing_name not in data:
         return "That wing does not exist."
 
@@ -665,13 +792,13 @@ def manual_assign_slot(data, name, role, wing_name, section_name=None, squad_nam
     return "That role is not valid."
 
 
-def format_assignment(name, slot):
+def format_rider_assignment(name, slot):
     role = slot[0]
     path = " → ".join(slot[1:])
     return f"**{name}** assigned as **{role}** in **{path}**."
 
 
-def format_manual_assignment(name, role, wing_name, section_name=None, squad_name=None):
+def format_manual_rider_assignment(name, role, wing_name, section_name=None, squad_name=None):
     parts = [wing_name]
     if section_name:
         parts.append(section_name)
@@ -719,7 +846,7 @@ def remove_rider(data, name):
     return None
 
 
-def format_taken(data):
+def format_taken_riders(data):
     lines = []
 
     for wing_name, wing in data.items():
@@ -756,32 +883,157 @@ def format_taken(data):
     return "\n".join(lines).strip() if lines else "No assignments yet."
 
 # -----------------------------
+# SIMPLE QUADRANT HELPERS
+# -----------------------------
+def find_name_in_simple_structure(data, name, lowest_plural):
+    target = normalize_name(name)
+
+    for role_name, assigned_name in data["_chain"].items():
+        if assigned_name and normalize_name(assigned_name) == target:
+            return True
+
+    for group_name, group in data.items():
+        if group_name == "_chain":
+            continue
+
+        for role_name, assigned_name in group.items():
+            if role_name == lowest_plural:
+                if target in [normalize_name(x) for x in assigned_name]:
+                    return True
+            else:
+                if assigned_name and normalize_name(assigned_name) == target:
+                    return True
+
+    return False
+
+
+def get_simple_open_slots(data, highest_roles, group_roles, lowest_singular, lowest_plural):
+    slots = []
+
+    for role in highest_roles:
+        if data["_chain"][role] is None:
+            slots.append((role, "_chain"))
+
+    for group_name, group in data.items():
+        if group_name == "_chain":
+            continue
+
+        for role in group_roles:
+            if group[role] is None:
+                slots.append((role, group_name))
+
+        if len(group[lowest_plural]) < 3:
+            slots.append((lowest_singular, group_name))
+
+    return slots
+
+
+def assign_simple_slot(data, name, slot, lowest_singular, lowest_plural):
+    role, group_name = slot
+
+    if group_name == "_chain":
+        data["_chain"][role] = name
+        return
+
+    if role == lowest_singular:
+        data[group_name][lowest_plural].append(name)
+    else:
+        data[group_name][role] = name
+
+
+def remove_from_simple_structure(data, name, lowest_plural):
+    target = normalize_name(name)
+
+    for role_name, assigned_name in data["_chain"].items():
+        if assigned_name and normalize_name(assigned_name) == target:
+            data["_chain"][role_name] = None
+            return f"Removed **{name}** from **{role_name}**."
+
+    for group_name, group in data.items():
+        if group_name == "_chain":
+            continue
+
+        for role_name, assigned_name in group.items():
+            if role_name == lowest_plural:
+                for entry in group[lowest_plural]:
+                    if normalize_name(entry) == target:
+                        group[lowest_plural].remove(entry)
+                        singular_name = lowest_plural[:-1] if lowest_plural.endswith("s") else lowest_plural
+                        return f"Removed **{name}** from **{singular_name}**."
+            else:
+                if assigned_name and normalize_name(assigned_name) == target:
+                    group[role_name] = None
+                    return f"Removed **{name}** from **{role_name}**."
+
+    return None
+
+
+def format_hidden_assignment(name, slot):
+    role = slot[0]
+    return f"**{name}** assigned as **{role}**."
+
+
+def format_simple_taken(data, lowest_label):
+    lines = []
+
+    chain_lines = []
+    for role_name, assigned_name in data["_chain"].items():
+        if assigned_name:
+            chain_lines.append(f"{role_name}: {assigned_name}")
+
+    if chain_lines:
+        lines.append("**High Chain**")
+        lines.extend(chain_lines)
+        lines.append("")
+
+    for group_name, group in data.items():
+        if group_name == "_chain":
+            continue
+
+        group_lines = []
+
+        for role_name, assigned_name in group.items():
+            if isinstance(assigned_name, list):
+                if assigned_name:
+                    group_lines.append(f"{lowest_label}: {', '.join(assigned_name)}")
+            else:
+                if assigned_name:
+                    group_lines.append(f"{role_name}: {assigned_name}")
+
+        if group_lines:
+            lines.append(f"**{group_name}**")
+            lines.extend(group_lines)
+            lines.append("")
+
+    return "\n".join(lines).strip() if lines else "No assignments yet."
+
+# -----------------------------
 # RIDER FORMATION COMMANDS
 # -----------------------------
 @bot.command()
 async def assignrider(ctx, *, name: str):
-    global assignment_data
+    global rider_data
 
-    if find_existing_assignment(assignment_data, name):
+    if find_existing_rider_assignment(rider_data, name):
         await ctx.send(f"**{name}** is already assigned.")
         return
 
-    slots = get_open_slots(assignment_data)
+    slots = get_open_rider_slots(rider_data)
 
     if not slots:
         await ctx.send("No rider slots left.")
         return
 
     slot = random.choice(slots)
-    assign_slot(assignment_data, name, slot)
-    save_formation_data()
+    assign_rider_slot(rider_data, name, slot)
+    save_json_file(RIDER_FILE, rider_data)
 
-    await ctx.send(format_assignment(name, slot))
+    await ctx.send(format_rider_assignment(name, slot))
 
 
 @bot.command()
 async def manualassign(ctx, *, args: str):
-    global assignment_data
+    global rider_data
 
     parts = [part.strip() for part in args.split("|")]
 
@@ -798,12 +1050,12 @@ async def manualassign(ctx, *, args: str):
     section_name = parts[3] if len(parts) >= 4 and parts[3] else None
     squad_name = parts[4] if len(parts) >= 5 and parts[4] else None
 
-    if find_existing_assignment(assignment_data, name):
+    if find_existing_rider_assignment(rider_data, name):
         await ctx.send(f"**{name}** is already assigned. Remove or reassign them first.")
         return
 
-    error = manual_assign_slot(
-        assignment_data,
+    error = manual_assign_rider_slot(
+        rider_data,
         name,
         role,
         wing_name,
@@ -815,51 +1067,51 @@ async def manualassign(ctx, *, args: str):
         await ctx.send(error)
         return
 
-    save_formation_data()
-    await ctx.send(format_manual_assignment(name, role, wing_name, section_name, squad_name))
+    save_json_file(RIDER_FILE, rider_data)
+    await ctx.send(format_manual_rider_assignment(name, role, wing_name, section_name, squad_name))
 
 
 @bot.command()
 async def removerider(ctx, *, name: str):
-    global assignment_data
+    global rider_data
 
-    result = remove_rider(assignment_data, name)
+    result = remove_rider(rider_data, name)
 
     if result is None:
         await ctx.send(f"Could not find **{name}** in the rider formation.")
         return
 
-    save_formation_data()
+    save_json_file(RIDER_FILE, rider_data)
     await ctx.send(result)
 
 
 @bot.command()
 async def reassignrider(ctx, *, name: str):
-    global assignment_data
+    global rider_data
 
-    removed = remove_rider(assignment_data, name)
+    removed = remove_rider(rider_data, name)
 
     if removed is None:
         await ctx.send(f"Could not find **{name}** in the rider formation.")
         return
 
-    slots = get_open_slots(assignment_data)
+    slots = get_open_rider_slots(rider_data)
 
     if not slots:
-        save_formation_data()
+        save_json_file(RIDER_FILE, rider_data)
         await ctx.send(f"{removed}\nNo open slots left to reassign them.")
         return
 
     slot = random.choice(slots)
-    assign_slot(assignment_data, name, slot)
-    save_formation_data()
+    assign_rider_slot(rider_data, name, slot)
+    save_json_file(RIDER_FILE, rider_data)
 
-    await ctx.send(f"{removed}\n{format_assignment(name, slot)}")
+    await ctx.send(f"{removed}\n{format_rider_assignment(name, slot)}")
 
 
 @bot.command()
 async def riderslots(ctx):
-    output = format_taken(assignment_data)
+    output = format_taken_riders(rider_data)
 
     if len(output) <= 2000:
         await ctx.send(output)
@@ -870,10 +1122,286 @@ async def riderslots(ctx):
 
 @bot.command()
 async def resetriders(ctx):
-    global assignment_data
-    assignment_data = copy.deepcopy(DEFAULT_STRUCTURE)
-    save_formation_data()
+    global rider_data
+    rider_data = copy.deepcopy(DEFAULT_RIDER_STRUCTURE)
+    save_json_file(RIDER_FILE, rider_data)
     await ctx.send("Rider formation has been reset.")
+
+# -----------------------------
+# INFANTRY FORMATION COMMANDS
+# -----------------------------
+@bot.command()
+async def assigninfantry(ctx, *, name: str):
+    global infantry_data
+
+    if find_name_in_simple_structure(infantry_data, name, "Cadets"):
+        await ctx.send(f"**{name}** is already assigned in infantry.")
+        return
+
+    slots = get_simple_open_slots(
+        infantry_data,
+        ["High Commander", "Commander"],
+        ["Captain", "Sergeant", "Corporal", "Soldier"],
+        "Cadet",
+        "Cadets"
+    )
+
+    if not slots:
+        await ctx.send("No infantry slots left.")
+        return
+
+    slot = random.choice(slots)
+    assign_simple_slot(infantry_data, name, slot, "Cadet", "Cadets")
+    save_json_file(INFANTRY_FILE, infantry_data)
+
+    await ctx.send(format_hidden_assignment(name, slot))
+
+
+@bot.command()
+async def removeinfantry(ctx, *, name: str):
+    global infantry_data
+
+    result = remove_from_simple_structure(infantry_data, name, "Cadets")
+
+    if result is None:
+        await ctx.send(f"Could not find **{name}** in infantry.")
+        return
+
+    save_json_file(INFANTRY_FILE, infantry_data)
+    await ctx.send(result)
+
+
+@bot.command()
+async def reassigninfantry(ctx, *, name: str):
+    global infantry_data
+
+    removed = remove_from_simple_structure(infantry_data, name, "Cadets")
+
+    if removed is None:
+        await ctx.send(f"Could not find **{name}** in infantry.")
+        return
+
+    slots = get_simple_open_slots(
+        infantry_data,
+        ["High Commander", "Commander"],
+        ["Captain", "Sergeant", "Corporal", "Soldier"],
+        "Cadet",
+        "Cadets"
+    )
+
+    if not slots:
+        save_json_file(INFANTRY_FILE, infantry_data)
+        await ctx.send(f"{removed}\nNo open infantry slots left.")
+        return
+
+    slot = random.choice(slots)
+    assign_simple_slot(infantry_data, name, slot, "Cadet", "Cadets")
+    save_json_file(INFANTRY_FILE, infantry_data)
+
+    await ctx.send(f"{removed}\n{format_hidden_assignment(name, slot)}")
+
+
+@bot.command()
+async def infantryslots(ctx):
+    output = format_simple_taken(infantry_data, "Cadets")
+
+    if len(output) <= 2000:
+        await ctx.send(output)
+    else:
+        for i in range(0, len(output), 2000):
+            await ctx.send(output[i:i + 2000])
+
+
+@bot.command()
+async def resetinfantry(ctx):
+    global infantry_data
+    infantry_data = copy.deepcopy(DEFAULT_INFANTRY_STRUCTURE)
+    save_json_file(INFANTRY_FILE, infantry_data)
+    await ctx.send("Infantry formation has been reset.")
+
+# -----------------------------
+# SCRIBE FORMATION COMMANDS
+# -----------------------------
+@bot.command()
+async def assignscribe(ctx, *, name: str):
+    global scribe_data
+
+    if find_name_in_simple_structure(scribe_data, name, "Scribes"):
+        await ctx.send(f"**{name}** is already assigned in the scribes quadrant.")
+        return
+
+    slots = get_simple_open_slots(
+        scribe_data,
+        ["Grand Maester", "Head Archivist"],
+        ["Master Scholar", "Curator", "Archivist", "Senior Scribe"],
+        "Scribe",
+        "Scribes"
+    )
+
+    if not slots:
+        await ctx.send("No scribe slots left.")
+        return
+
+    slot = random.choice(slots)
+    assign_simple_slot(scribe_data, name, slot, "Scribe", "Scribes")
+    save_json_file(SCRIBE_FILE, scribe_data)
+
+    await ctx.send(format_hidden_assignment(name, slot))
+
+
+@bot.command()
+async def removescribe(ctx, *, name: str):
+    global scribe_data
+
+    result = remove_from_simple_structure(scribe_data, name, "Scribes")
+
+    if result is None:
+        await ctx.send(f"Could not find **{name}** in the scribes quadrant.")
+        return
+
+    save_json_file(SCRIBE_FILE, scribe_data)
+    await ctx.send(result)
+
+
+@bot.command()
+async def reassignscribe(ctx, *, name: str):
+    global scribe_data
+
+    removed = remove_from_simple_structure(scribe_data, name, "Scribes")
+
+    if removed is None:
+        await ctx.send(f"Could not find **{name}** in the scribes quadrant.")
+        return
+
+    slots = get_simple_open_slots(
+        scribe_data,
+        ["Grand Maester", "Head Archivist"],
+        ["Master Scholar", "Curator", "Archivist", "Senior Scribe"],
+        "Scribe",
+        "Scribes"
+    )
+
+    if not slots:
+        save_json_file(SCRIBE_FILE, scribe_data)
+        await ctx.send(f"{removed}\nNo open scribe slots left.")
+        return
+
+    slot = random.choice(slots)
+    assign_simple_slot(scribe_data, name, slot, "Scribe", "Scribes")
+    save_json_file(SCRIBE_FILE, scribe_data)
+
+    await ctx.send(f"{removed}\n{format_hidden_assignment(name, slot)}")
+
+
+@bot.command()
+async def scribeslots(ctx):
+    output = format_simple_taken(scribe_data, "Scribes")
+
+    if len(output) <= 2000:
+        await ctx.send(output)
+    else:
+        for i in range(0, len(output), 2000):
+            await ctx.send(output[i:i + 2000])
+
+
+@bot.command()
+async def resetscribes(ctx):
+    global scribe_data
+    scribe_data = copy.deepcopy(DEFAULT_SCRIBE_STRUCTURE)
+    save_json_file(SCRIBE_FILE, scribe_data)
+    await ctx.send("Scribe formation has been reset.")
+
+# -----------------------------
+# HEALER FORMATION COMMANDS
+# -----------------------------
+@bot.command()
+async def assignhealer(ctx, *, name: str):
+    global healer_data
+
+    if find_name_in_simple_structure(healer_data, name, "Trainees"):
+        await ctx.send(f"**{name}** is already assigned in healers.")
+        return
+
+    slots = get_simple_open_slots(
+        healer_data,
+        ["Arch Healer", "Healer"],
+        ["Senior Practitioner", "Practitioner", "Medic", "Acolyte"],
+        "Trainee",
+        "Trainees"
+    )
+
+    if not slots:
+        await ctx.send("No healer slots left.")
+        return
+
+    slot = random.choice(slots)
+    assign_simple_slot(healer_data, name, slot, "Trainee", "Trainees")
+    save_json_file(HEALER_FILE, healer_data)
+
+    await ctx.send(format_hidden_assignment(name, slot))
+
+
+@bot.command()
+async def removehealer(ctx, *, name: str):
+    global healer_data
+
+    result = remove_from_simple_structure(healer_data, name, "Trainees")
+
+    if result is None:
+        await ctx.send(f"Could not find **{name}** in healers.")
+        return
+
+    save_json_file(HEALER_FILE, healer_data)
+    await ctx.send(result)
+
+
+@bot.command()
+async def reassignhealer(ctx, *, name: str):
+    global healer_data
+
+    removed = remove_from_simple_structure(healer_data, name, "Trainees")
+
+    if removed is None:
+        await ctx.send(f"Could not find **{name}** in healers.")
+        return
+
+    slots = get_simple_open_slots(
+        healer_data,
+        ["Arch Healer", "Healer"],
+        ["Senior Practitioner", "Practitioner", "Medic", "Acolyte"],
+        "Trainee",
+        "Trainees"
+    )
+
+    if not slots:
+        save_json_file(HEALER_FILE, healer_data)
+        await ctx.send(f"{removed}\nNo open healer slots left.")
+        return
+
+    slot = random.choice(slots)
+    assign_simple_slot(healer_data, name, slot, "Trainee", "Trainees")
+    save_json_file(HEALER_FILE, healer_data)
+
+    await ctx.send(f"{removed}\n{format_hidden_assignment(name, slot)}")
+
+
+@bot.command()
+async def healerslots(ctx):
+    output = format_simple_taken(healer_data, "Trainees")
+
+    if len(output) <= 2000:
+        await ctx.send(output)
+    else:
+        for i in range(0, len(output), 2000):
+            await ctx.send(output[i:i + 2000])
+
+
+@bot.command()
+async def resethealers(ctx):
+    global healer_data
+    healer_data = copy.deepcopy(DEFAULT_HEALER_STRUCTURE)
+    save_json_file(HEALER_FILE, healer_data)
+    await ctx.send("Healer formation has been reset.")
 
 # -----------------------------
 # HELP COMMAND
@@ -892,17 +1420,38 @@ async def rphelp(ctx):
         "`!signet` → Manifest your signet\n\n"
 
         "**⚔️ Quadrants**\n"
-        "`!infantry` → Roll combat specialty\n"
-        "`!scribe` → Roll subject specialty\n"
-        "`!healing` → Roll healing discipline\n\n"
+        "`!infantry` → Roll for combat specialty\n"
+        "`!scribe` → Roll for subject specialty\n"
+        "`!healing` → Roll for healing discipline\n\n"
 
         "**🪽 Rider Formation**\n"
         "`!assignrider name` → Assign a rider to a random open slot\n"
         "`!manualassign name | role | wing | section | squad` → Manually assign a rider\n"
         "`!removerider name` → Remove one rider\n"
         "`!reassignrider name` → Remove and reroll one rider\n"
-        "`!riderslots` → Show filled formation slots\n"
+        "`!riderslots` → Show filled rider slots\n"
         "`!resetriders` → Reset rider formation\n\n"
+
+        "**⚔️ Infantry Formation**\n"
+        "`!assigninfantry name` → Assign infantry rank\n"
+        "`!removeinfantry name` → Remove infantry assignment\n"
+        "`!reassigninfantry name` → Reroll infantry rank\n"
+        "`!infantryslots` → Show filled infantry slots\n"
+        "`!resetinfantry` → Reset infantry formation\n\n"
+
+        "**📚 Scribe Formation**\n"
+        "`!assignscribe name` → Assign scribe rank\n"
+        "`!removescribe name` → Remove scribe assignment\n"
+        "`!reassignscribe name` → Reroll scribe rank\n"
+        "`!scribeslots` → Show filled scribe slots\n"
+        "`!resetscribes` → Reset scribe formation\n\n"
+
+        "**🩺 Healer Formation**\n"
+        "`!assignhealer name` → Assign healer rank\n"
+        "`!removehealer name` → Remove healer assignment\n"
+        "`!reassignhealer name` → Reroll healer rank\n"
+        "`!healerslots` → Show filled healer slots\n"
+        "`!resethealers` → Reset healer formation\n\n"
 
         "**🎲 Standard D&D Dice**\n"
         "`!d4`\n"
