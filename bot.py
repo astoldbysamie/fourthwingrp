@@ -170,6 +170,78 @@ def format_taken(data):
 
     return "\n".join(lines) if lines else "No assignments yet."
 
+# -----------------------------
+# EXTRA HELPERS
+# -----------------------------
+def remove_rider(data, name):
+    target = name.lower().strip()
+
+    for wing_name, wing in data.items():
+        if wing["wingleader"] and wing["wingleader"].lower() == target:
+            wing["wingleader"] = None
+            return f"Removed **{name}** from **Wingleader** in **{wing_name}**."
+
+        for section_name, section in wing["sections"].items():
+            if section["section_leader"] and section["section_leader"].lower() == target:
+                section["section_leader"] = None
+                return f"Removed **{name}** from **Section Leader** in **{wing_name} → {section_name}**."
+
+            for squad_name, squad in section["squads"].items():
+                if squad["squad_leader"] and squad["squad_leader"].lower() == target:
+                    squad["squad_leader"] = None
+                    return f"Removed **{name}** from **Squad Leader** in **{wing_name} → {section_name} → {squad_name}**."
+
+                if squad["executive_squad_leader"] and squad["executive_squad_leader"].lower() == target:
+                    squad["executive_squad_leader"] = None
+                    return f"Removed **{name}** from **Executive Squad Leader** in **{wing_name} → {section_name} → {squad_name}**."
+
+                for cadet in squad["cadets"]:
+                    if cadet.lower() == target:
+                        squad["cadets"].remove(cadet)
+                        return f"Removed **{name}** from **Cadet** in **{wing_name} → {section_name} → {squad_name}**."
+
+    return None
+
+
+# -----------------------------
+# NEW COMMANDS
+# -----------------------------
+@bot.command()
+async def removerider(ctx, *, name: str):
+    global assignment_data
+
+    result = remove_rider(assignment_data, name)
+
+    if result is None:
+        await ctx.send(f"Could not find **{name}** in the rider assignments.")
+        return
+
+    save_data(assignment_data)
+    await ctx.send(result)
+
+
+@bot.command()
+async def reassignrider(ctx, *, name: str):
+    global assignment_data
+
+    removed = remove_rider(assignment_data, name)
+
+    if removed is None:
+        await ctx.send(f"Could not find **{name}** in the rider assignments.")
+        return
+
+    slots = get_open_slots(assignment_data)
+
+    if not slots:
+        save_data(assignment_data)
+        await ctx.send(f"{removed}\nNo open slots left to reassign them.")
+        return
+
+    slot = random.choice(slots)
+    assign_slot(assignment_data, name, slot)
+    save_data(assignment_data)
+
+    await ctx.send(f"{removed}\n{format_assignment(name, slot)}")
 
 # -----------------------------
 # COMMANDS
