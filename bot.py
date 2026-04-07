@@ -432,7 +432,7 @@ async def scribe(ctx):
 
 
 @bot.command()
-async def healing(ctx):
+async def healer(ctx):
     disciplines = [
         ("Battlefield", "Healers trained to operate within active combat, prioritizing rapid stabilization under pressure."),
         ("Surgical", "Healers specializing in controlled, precision-based procedures requiring skill and exact technique."),
@@ -446,9 +446,9 @@ async def healing(ctx):
     name, desc = disciplines[roll_num - 1]
 
     await ctx.send(
-        f"**Healing Result**\n"
+        f"**Healer Result**\n"
         f"Roll: **{roll_num}**\n"
-        f"Healing Discipline: **{name}**\n"
+        f"Healer Discipline: **{name}**\n"
         f"{desc}"
     )
 
@@ -1422,7 +1422,7 @@ async def rphelp(ctx):
         "**⚔️ Quadrants**\n"
         "`!infantry` → Roll combat specialty\n"
         "`!scribe` → Roll subject specialty\n"
-        "`!healing` → Roll healing discipline\n\n"
+        "`!healer` → Roll healer discipline\n\n"
 
         "**🪽 Rider Formation**\n"
         "`!assignrider name` → Assign a rider to a random open slot\n"
