@@ -319,6 +319,98 @@ DEFAULT_HEALER_STRUCTURE = {
 }
 
 # -----------------------------
+# CHARACTER GENERATOR DATA
+# -----------------------------
+FIRST_NAMES = [
+    "Aelin", "Mira", "Talia", "Nessa", "Elira", "Kaia", "Lyra", "Seren", "Veda", "Rhea",
+    "Dorian", "Cassian", "Rhys", "Bren", "Matthias", "Lucan", "Gideon", "Theron", "Kieran", "Rowan",
+    "Sable", "Aster", "Indra", "Valen", "Noa", "Ari", "Emery", "Ren", "Cai", "Briar"
+]
+
+LAST_NAMES = [
+    "Sorren", "Vale", "Dane", "Aurell", "Mercer", "Thorne", "Kallis", "Morcant", "Arden", "Voss",
+    "Ravelle", "Ashdown", "Corven", "Damaris", "Ellowen", "Drake", "Morrow", "Wren", "Keir", "Halden"
+]
+
+ALIASES = [
+    "Red", "Ash", "Birdie", "Storm", "Lucky", "Fox", "Rook", "Blade", "Ghost", "Crow",
+    "Blue", "Rune", "Torch", "Thorn", "Echo", "Vex", "Sparrow", "Bolt", "Rose", "Flint"
+]
+
+PRONOUN_SETS = [
+    ("woman", "she/her"),
+    ("man", "he/him"),
+    ("nonbinary", "they/them")
+]
+
+POSITIVE_TRAITS = [
+    "loyal", "disciplined", "charming", "sharp-witted", "resourceful", "steady", "fearless", "observant",
+    "ambitious", "clever", "protective", "devoted", "resilient", "charismatic", "strategic", "patient"
+]
+
+NEGATIVE_TRAITS = [
+    "stubborn", "reckless", "guarded", "blunt", "secretive", "impatient", "prideful", "sarcastic",
+    "vengeful", "moody", "argumentative", "restless", "cold", "impulsive", "ruthless", "suspicious"
+]
+
+AESTHETICS = [
+    "ink-stained fingers", "sword belts and leather gloves", "storm clouds and silver rings", "pressed flowers in books",
+    "burnished gold details", "moonlit balconies", "cracked marble and candle smoke", "black uniforms and sharp boots",
+    "daggers hidden in lace", "dragon scales and soot", "velvet collars", "midnight blue silk", "rain on stone",
+    "worn journals", "copper clasps", "obsidian jewelry", "sun-faded maps", "smoked glass"
+]
+
+ALLIANCES = ["Navarre", "Navarre", "Navarre", "Navarre", "Rebellion"]
+
+DRAGON_NAMES = [
+    "Tairnith", "Arixa", "Velmora", "Soryn", "Kaelor", "Nysera", "Vharyn", "Torvek", "Mireth", "Zalara",
+    "Rhykor", "Aethra", "Vorryn", "Selka", "Draevik", "Maelis", "Kovara", "Zephrys", "Orynth", "Thessra"
+]
+
+DRAGON_PRONOUNS = ["she/her", "he/him", "they/them"]
+DRAGON_COLORS = ["Black", "Red", "Red", "Orange", "Orange", "Blue", "Blue", "Brown", "Brown", "Green", "Green"]
+DRAGON_TAILS = ["Morningstar tail", "Swordtail", "Swordtail", "Scorpion tail", "Scorpion tail", "Club tail", "Club tail", "Daggertail", "Daggertail"]
+SIGNETS = [
+    "shadow wielding", "lightning wielding", "truth-sensing", "distance wielding", "ice wielding", "fire wielding",
+    "mindwork", "shielding", "dreamwalking", "metal manipulation", "wind wielding", "poison detection",
+    "healing amplification", "precognition flashes", "illusion casting", "gravity manipulation"
+]
+RIDER_TITLES = ["", "Squad hopeful", "Marked cadet", "Reluctant prodigy", "Wingleader's headache", "Dragon-bonded menace"]
+
+INFANTRY_SPECIALTIES = ["Vanguard", "Bastion", "Skirmisher", "Breaker", "Ranger", "Tactician"]
+COMBAT_TRAITS = [
+    "excellent with a blade", "strong defensive instincts", "fast on their feet", "excellent formation discipline",
+    "brutal in close combat", "steady under pressure", "deadly at range", "good battlefield awareness"
+]
+INFANTRY_DIVISIONS = ["First Division", "Second Division", "Third Division", "Fourth Division"]
+INFANTRY_TITLES = ["", "Frontline menace", "Shield wall darling", "Too stubborn to die", "Captain's favorite problem"]
+
+SCRIBE_SPECIALTIES = ["Archive", "Chronicle", "Lexicon", "Intelligence", "Cipher", "Restricted"]
+ACADEMIC_STRENGTHS = [
+    "languages", "historical recall", "rapid transcription", "pattern recognition", "codebreaking", "research",
+    "political analysis", "memorization"
+]
+SCRIBE_ORDERS = ["First Order", "Second Order", "Third Order", "Fourth Order"]
+SCRIBE_TITLES = ["", "Archivist's nightmare", "Ink-stained prodigy", "Forbidden stacks enthusiast", "Faculty favorite"]
+
+HEALER_CIRCLES = ["First Circle", "Second Circle", "Third Circle", "Fourth Circle"]
+HEALER_SPECIALTIES = ["Battlefield", "Surgical", "Recovery", "Emergency", "Experimental", "Dragonkind"]
+HEALER_TITLES = ["", "Calm in chaos", "Battle-born medic", "Sleep-deprived miracle worker", "Senior healer's headache"]
+
+MENTION_REPLIES = [
+    "You rang, cadet?",
+    "Basgiath sees all.",
+    "Try not to die today.",
+    "At your service, menace.",
+    "State your business before the dragons get impatient.",
+    "You called. I judged. I'm listening.",
+    "Reporting for chaos.",
+    "Careful. Tag me twice and I'll start assigning signets.",
+    "What is it now, rider?",
+    "You have my attention. Briefly."
+]
+
+# -----------------------------
 # JSON HELPERS
 # -----------------------------
 def load_json_file(filename, default_data):
@@ -327,9 +419,11 @@ def load_json_file(filename, default_data):
             return json.load(f)
     return copy.deepcopy(default_data)
 
+
 def save_json_file(filename, data):
     with open(filename, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4)
+
 
 rider_data = load_json_file(RIDER_FILE, DEFAULT_RIDER_STRUCTURE)
 infantry_data = load_json_file(INFANTRY_FILE, DEFAULT_INFANTRY_STRUCTURE)
@@ -342,6 +436,110 @@ healer_data = load_json_file(HEALER_FILE, DEFAULT_HEALER_STRUCTURE)
 def normalize_name(name: str) -> str:
     return name.lower().strip()
 
+
+def random_full_name() -> str:
+    return f"{random.choice(FIRST_NAMES)} {random.choice(LAST_NAMES)}"
+
+
+def pick_two_unique(options):
+    return random.sample(options, 2)
+
+
+def safe_title_pick(options):
+    title = random.choice(options)
+    return title if title else "none"
+
+
+def create_character_profile(quadrant_choice: str | None = None) -> str:
+    valid_quadrants = ["riders", "infantry", "scribes", "healers"]
+
+    if quadrant_choice is None:
+        quadrant = random.choice(valid_quadrants)
+    else:
+        quadrant = quadrant_choice.lower().strip()
+        if quadrant not in valid_quadrants:
+            quadrant = random.choice(valid_quadrants)
+
+    name = random_full_name()
+    alias = random.choice(ALIASES)
+    age = random.randint(21, 27)
+    gender, pronouns = random.choice(PRONOUN_SETS)
+    alliance = random.choice(ALLIANCES)
+    positive_1, positive_2 = pick_two_unique(POSITIVE_TRAITS)
+    negative_1, negative_2 = pick_two_unique(NEGATIVE_TRAITS)
+    aesthetic_1, aesthetic_2 = pick_two_unique(AESTHETICS)
+
+    base = [
+        f"**Title:** {name}",
+        f"• **alias/nickname:** {alias}",
+        f"• **age:** {age}",
+        f"• **gender / pronouns:** {gender} / {pronouns}",
+        f"• **quadrant:** {quadrant}",
+        f"• **alliance:** {alliance}",
+        "",
+        f"• **positive traits:** {positive_1}, {positive_2}",
+        f"• **negative traits:** {negative_1}, {negative_2}",
+        f"• **aesthetics:** {aesthetic_1}, {aesthetic_2}",
+        "",
+        "***Chose One Of These:***",
+        ""
+    ]
+
+    if quadrant == "riders":
+        dragon_color = random.choice(DRAGON_COLORS)
+        dragon_tail = random.choice(DRAGON_TAILS)
+        section = random.choice(["Flame Section", "Claw Section", "Tail Section"])
+        wing = random.choice(["First Wing", "Second Wing", "Third Wing", "Fourth Wing"])
+        squad = "First Squad"
+        base.extend([
+            "✦ **RIDERS**",
+            f"• **dragon name:** {random.choice(DRAGON_NAMES)}",
+            f"• **dragon color-tail:** {dragon_color} {dragon_tail}",
+            f"• **dragon pronouns:** {random.choice(DRAGON_PRONOUNS)}",
+            f"• **signet:** {random.choice(SIGNETS)}",
+            f"• **wing / section / squad:** {wing} / {section} / {squad}",
+            f"• **title if applicable:** {safe_title_pick(RIDER_TITLES)}"
+        ])
+    elif quadrant == "infantry":
+        base.extend([
+            "✦ **INFANTRY**",
+            f"• **specialization:** {random.choice(INFANTRY_SPECIALTIES)}",
+            f"• **combat trait:** {random.choice(COMBAT_TRAITS)}",
+            f"• **division:** {random.choice(INFANTRY_DIVISIONS)}",
+            f"• **title if applicable:** {safe_title_pick(INFANTRY_TITLES)}"
+        ])
+    elif quadrant == "scribes":
+        base.extend([
+            "✦ **SCRIBES**",
+            f"• **subject specialty:** {random.choice(SCRIBE_SPECIALTIES)}",
+            f"• **academic strength:** {random.choice(ACADEMIC_STRENGTHS)}",
+            f"• **archive order:** {random.choice(SCRIBE_ORDERS)}",
+            f"• **title if applicable:** {safe_title_pick(SCRIBE_TITLES)}"
+        ])
+    else:
+        base.extend([
+            "✦ **HEALERS**",
+            f"• **circle:** {random.choice(HEALER_CIRCLES)}",
+            f"• **specialization:** {random.choice(HEALER_SPECIALTIES)}",
+            f"• **title if applicable:** {safe_title_pick(HEALER_TITLES)}"
+        ])
+
+    return "\n".join(base)
+
+
+def split_long_message(text: str, chunk_size: int = 1900):
+    chunks = []
+    remaining = text
+    while len(remaining) > chunk_size:
+        split_at = remaining.rfind("\n", 0, chunk_size)
+        if split_at == -1:
+            split_at = chunk_size
+        chunks.append(remaining[:split_at])
+        remaining = remaining[split_at:].lstrip("\n")
+    if remaining:
+        chunks.append(remaining)
+    return chunks
+
 # -----------------------------
 # EVENTS
 # -----------------------------
@@ -349,10 +547,15 @@ def normalize_name(name: str) -> str:
 async def on_ready():
     print(f"Logged in as {bot.user}")
 
+
 @bot.event
 async def on_message(message):
     if message.author.bot:
         return
+
+    if bot.user and bot.user in message.mentions:
+        await message.channel.send(random.choice(MENTION_REPLIES))
+
     await bot.process_commands(message)
 
 # -----------------------------
@@ -360,28 +563,12 @@ async def on_message(message):
 # -----------------------------
 @bot.command()
 async def threshing(ctx):
-    dragon_colors = [
-        "Black",
-        "Red", "Red",
-        "Orange", "Orange",
-        "Blue", "Blue",
-        "Brown", "Brown",
-        "Green", "Green"
-    ]
-
-    dragon_tails = [
-        "Morningstar tail",
-        "Swordtail", "Swordtail",
-        "Scorpion tail", "Scorpion tail",
-        "Club tail", "Club tail",
-        "Daggertail", "Daggertail"
-    ]
-
     await ctx.send(
         f"**Threshing Result**\n"
-        f"Dragon Color: **{random.choice(dragon_colors)}**\n"
-        f"Tail: **{random.choice(dragon_tails)}**"
+        f"Dragon Color: **{random.choice(DRAGON_COLORS)}**\n"
+        f"Tail: **{random.choice(DRAGON_TAILS)}**"
     )
+
 
 @bot.command()
 async def infantry(ctx):
@@ -404,15 +591,16 @@ async def infantry(ctx):
         f"{desc}"
     )
 
+
 @bot.command()
 async def scribe(ctx):
     specialties = [
-        ("Archive", "Preservation of records, ancient texts, and restricted materials. Responsible for maintaining the Quadrant’s most valuable knowledge."),
-        ("Chronicle", "Documentation of events, reports, and historical accounts. Tasked with recording truth as it happens."),
-        ("Lexicon", "Languages, translation, and interpretation of foreign or coded texts. Essential for communication and deciphering unknown scripts."),
-        ("Intelligence", "Information gathering, analysis, and strategic insight. Works closely with leadership to interpret and apply knowledge."),
-        ("Cipher", "Codes, encryption, and protection of sensitive information. Ensures that what must remain hidden, stays hidden."),
-        ("Restricted", "Forbidden knowledge and sealed records. Access is limited, and those assigned here operate under strict oversight.")
+        ("Archive", "Preservation of records, ancient texts, and restricted materials."),
+        ("Chronicle", "Documentation of events, reports, and historical accounts."),
+        ("Lexicon", "Languages, translation, and interpretation of foreign or coded texts."),
+        ("Intelligence", "Information gathering, analysis, and strategic insight."),
+        ("Cipher", "Codes, encryption, and protection of sensitive information."),
+        ("Restricted", "Forbidden knowledge and sealed records under strict oversight.")
     ]
 
     roll_num = random.randint(1, 6)
@@ -425,15 +613,16 @@ async def scribe(ctx):
         f"{desc}"
     )
 
+
 @bot.command()
 async def healer(ctx):
     disciplines = [
-        ("Battlefield", "Healers trained to operate within active combat, prioritizing rapid stabilization under pressure."),
-        ("Surgical", "Healers specializing in controlled, precision-based procedures requiring skill and exact technique."),
-        ("Recovery", "Healers focused on long-term care, rehabilitation, and the restoration of strength over time."),
-        ("Emergency", "Healers trained for critical intervention, where immediate action determines survival."),
-        ("Experimental", "Healers who utilize unproven or evolving methods, often working beyond standard practice."),
-        ("Dragonkind", "Healers trained to treat dragons and manage injuries tied to the rider bond.")
+        ("Battlefield", "Healers trained to operate within active combat."),
+        ("Surgical", "Healers specializing in controlled, precision-based procedures."),
+        ("Recovery", "Healers focused on long-term care and rehabilitation."),
+        ("Emergency", "Healers trained for critical intervention."),
+        ("Experimental", "Healers who utilize unproven or evolving methods."),
+        ("Dragonkind", "Healers trained to treat dragons and rider-bond injuries.")
     ]
 
     roll_num = random.randint(1, 6)
@@ -446,6 +635,7 @@ async def healer(ctx):
         f"{desc}"
     )
 
+
 @bot.command()
 async def dragonspeak(ctx):
     approval = [
@@ -454,7 +644,7 @@ async def dragonspeak(ctx):
         "Your dragon lowers their head, clearly pleased.",
         "A proud huff escapes your dragon.",
         "Their tail flicks once in quiet approval.",
-        "Your dragon’s gaze sharpens with interest."
+        "Your dragon's gaze sharpens with interest."
     ]
 
     disapproval = [
@@ -462,7 +652,7 @@ async def dragonspeak(ctx):
         "A cold flash of disapproval cuts through the bond.",
         "Your dragon turns their head away, unimpressed.",
         "Their tail lashes once in annoyance.",
-        "Your dragon’s eyes narrow in clear judgment.",
+        "Your dragon's eyes narrow in clear judgment.",
         "A warning growl vibrates in their chest."
     ]
 
@@ -470,6 +660,7 @@ async def dragonspeak(ctx):
         await ctx.send(f"**Dragon Approval**\n{random.choice(approval)}")
     else:
         await ctx.send(f"**Dragon Disapproval**\n{random.choice(disapproval)}")
+
 
 @bot.command()
 async def dragonaction(ctx):
@@ -488,24 +679,25 @@ async def dragonaction(ctx):
 
     await ctx.send(f"**Dragon Action**\n{random.choice(actions)}")
 
+
 @bot.command()
 async def signet(ctx):
     roll = random.randint(1, 20)
 
     common_flavor = [
-        "A steady warmth spreads through your veins as your dragon’s power settles into you.",
-        "The bond hums softly—controlled, grounded, and unmistakably yours.",
+        "A steady warmth spreads through your veins as your dragon's power settles into you.",
+        "The bond hums softly, controlled, grounded, and unmistakably yours.",
         "Power builds within you, quiet but constant, like a flame that will never go out.",
-        "Your dragon’s strength flows into you, shaping itself into something stable and reliable.",
+        "Your dragon's strength flows into you, shaping itself into something stable and reliable.",
         "The connection tightens, your abilities forming with deliberate, steady force."
     ]
 
     rare_flavor = [
-        "Your dragon’s power surges through you—wild, overwhelming, and impossible to ignore.",
+        "Your dragon's power surges through you, wild, overwhelming, and impossible to ignore.",
         "The bond ignites violently, power cracking through you like lightning.",
         "Something ancient and immense awakens within you, far beyond control.",
-        "The air itself seems to shift as your dragon’s full strength floods your body.",
-        "Your dragon’s power doesn’t settle—it erupts, claiming you completely."
+        "The air itself seems to shift as your dragon's full strength floods your body.",
+        "Your dragon's power doesn't settle, it erupts, claiming you completely."
     ]
 
     if roll >= 15:
@@ -522,9 +714,31 @@ async def signet(ctx):
     )
 
 # -----------------------------
+# CHARACTER CREATION COMMANDS
+# -----------------------------
+@bot.command(name="createcharacter", aliases=["character", "oc", "makecharacter"])
+async def createcharacter(ctx, quadrant: str = None):
+    profile = create_character_profile(quadrant)
+    for chunk in split_long_message(profile):
+        await ctx.send(chunk)
+
+
+@bot.command(name="charhelp")
+async def charhelp(ctx):
+    await ctx.send(
+        "**Character Generator**\n"
+        "`!createcharacter` → Generate a fully random character\n"
+        "`!createcharacter riders` → Generate a rider\n"
+        "`!createcharacter infantry` → Generate an infantry cadet\n"
+        "`!createcharacter scribes` → Generate a scribe\n"
+        "`!createcharacter healers` → Generate a healer"
+    )
+
+# -----------------------------
 # DICE COMMANDS
 # -----------------------------
 VALID_DICE = [4, 6, 8, 10, 12, 20, 100]
+
 
 @bot.command()
 async def roll(ctx, dice: str = "d20"):
@@ -575,40 +789,40 @@ async def roll(ctx, dice: str = "d20"):
         f"Total: **{subtotal}{mod_text} = {total}**"
     )
 
+
 @bot.command()
 async def d4(ctx):
-    result = random.randint(1, 4)
-    await ctx.send(f"**d4 Roll**\nYou rolled: **{result}**")
+    await ctx.send(f"**d4 Roll**\nYou rolled: **{random.randint(1, 4)}**")
+
 
 @bot.command()
 async def d6(ctx):
-    result = random.randint(1, 6)
-    await ctx.send(f"**d6 Roll**\nYou rolled: **{result}**")
+    await ctx.send(f"**d6 Roll**\nYou rolled: **{random.randint(1, 6)}**")
+
 
 @bot.command()
 async def d8(ctx):
-    result = random.randint(1, 8)
-    await ctx.send(f"**d8 Roll**\nYou rolled: **{result}**")
+    await ctx.send(f"**d8 Roll**\nYou rolled: **{random.randint(1, 8)}**")
+
 
 @bot.command()
 async def d10(ctx):
-    result = random.randint(1, 10)
-    await ctx.send(f"**d10 Roll**\nYou rolled: **{result}**")
+    await ctx.send(f"**d10 Roll**\nYou rolled: **{random.randint(1, 10)}**")
+
 
 @bot.command()
 async def d12(ctx):
-    result = random.randint(1, 12)
-    await ctx.send(f"**d12 Roll**\nYou rolled: **{result}**")
+    await ctx.send(f"**d12 Roll**\nYou rolled: **{random.randint(1, 12)}**")
+
 
 @bot.command()
 async def d20(ctx):
-    result = random.randint(1, 20)
-    await ctx.send(f"**d20 Roll**\nYou rolled: **{result}**")
+    await ctx.send(f"**d20 Roll**\nYou rolled: **{random.randint(1, 20)}**")
+
 
 @bot.command()
 async def d100(ctx):
-    result = random.randint(1, 100)
-    await ctx.send(f"**d100 Roll**\nYou rolled: **{result}**")
+    await ctx.send(f"**d100 Roll**\nYou rolled: **{random.randint(1, 100)}**")
 
 # -----------------------------
 # RIDER FORMATION HELPERS
@@ -616,7 +830,7 @@ async def d100(ctx):
 def find_existing_rider_assignment(data, name):
     target = normalize_name(name)
 
-    for wing_name, wing in data.items():
+    for wing in data.values():
         if wing["wingleader"] and normalize_name(wing["wingleader"]) == target:
             return True
 
@@ -641,6 +855,7 @@ def find_existing_rider_assignment(data, name):
                     return True
 
     return False
+
 
 def get_open_rider_slots(data):
     slots = []
@@ -671,6 +886,7 @@ def get_open_rider_slots(data):
 
     return slots
 
+
 def assign_rider_slot(data, name, slot):
     role = slot[0]
     wing_name = slot[1]
@@ -678,32 +894,27 @@ def assign_rider_slot(data, name, slot):
 
     if role == "Wingleader":
         wing["wingleader"] = name
-
     elif role == "Wing Executive Officer":
         wing["executive_officer"] = name
-
     elif role == "Section Leader":
         section_name = slot[2]
         wing["sections"][section_name]["section_leader"] = name
-
     elif role == "Section Executive Officer":
         section_name = slot[2]
         wing["sections"][section_name]["executive_officer"] = name
-
     elif role == "Squad Leader":
         section_name = slot[2]
         squad_name = slot[3]
         wing["sections"][section_name]["squads"][squad_name]["squad_leader"] = name
-
     elif role == "Executive Squad Leader":
         section_name = slot[2]
         squad_name = slot[3]
         wing["sections"][section_name]["squads"][squad_name]["executive_squad_leader"] = name
-
     elif role == "Cadet":
         section_name = slot[2]
         squad_name = slot[3]
         wing["sections"][section_name]["squads"][squad_name]["cadets"].append(name)
+
 
 def manual_assign_rider_slot(data, name, role, wing_name, section_name=None, squad_name=None):
     if wing_name not in data:
@@ -771,10 +982,12 @@ def manual_assign_rider_slot(data, name, role, wing_name, section_name=None, squ
 
     return "That role is not valid."
 
+
 def format_rider_assignment(name, slot):
     role = slot[0]
     path = " → ".join(slot[1:])
     return f"**{name}** assigned as **{role}** in **{path}**."
+
 
 def format_manual_rider_assignment(name, role, wing_name, section_name=None, squad_name=None):
     parts = [wing_name]
@@ -782,8 +995,8 @@ def format_manual_rider_assignment(name, role, wing_name, section_name=None, squ
         parts.append(section_name)
     if squad_name:
         parts.append(squad_name)
-
     return f"**{name}** manually assigned as **{role}** in **{' → '.join(parts)}**."
+
 
 def remove_rider(data, name):
     target = normalize_name(name)
@@ -821,6 +1034,7 @@ def remove_rider(data, name):
                         return f"Removed **{name}** from **Cadet** in **{wing_name} → {section_name} → {squad_name}**."
 
     return None
+
 
 def format_taken_riders(data):
     lines = []
@@ -864,7 +1078,7 @@ def format_taken_riders(data):
 def find_name_in_simple_structure(data, name, lowest_plural):
     target = normalize_name(name)
 
-    for role_name, assigned_name in data["_chain"].items():
+    for assigned_name in data["_chain"].values():
         if assigned_name and normalize_name(assigned_name) == target:
             return True
 
@@ -881,6 +1095,7 @@ def find_name_in_simple_structure(data, name, lowest_plural):
                     return True
 
     return False
+
 
 def get_simple_open_slots(data, highest_roles, group_roles, lowest_singular, lowest_plural):
     slots = []
@@ -902,6 +1117,7 @@ def get_simple_open_slots(data, highest_roles, group_roles, lowest_singular, low
 
     return slots
 
+
 def assign_simple_slot(data, name, slot, lowest_singular, lowest_plural):
     role, group_name = slot
 
@@ -913,6 +1129,7 @@ def assign_simple_slot(data, name, slot, lowest_singular, lowest_plural):
         data[group_name][lowest_plural].append(name)
     else:
         data[group_name][role] = name
+
 
 def remove_from_simple_structure(data, name, lowest_plural):
     target = normalize_name(name)
@@ -940,9 +1157,11 @@ def remove_from_simple_structure(data, name, lowest_plural):
 
     return None
 
+
 def format_hidden_assignment(name, slot):
     role = slot[0]
     return f"**{name}** assigned as **{role}**."
+
 
 def format_simple_taken(data, lowest_label):
     lines = []
@@ -1031,6 +1250,7 @@ async def assignrider(ctx, *, name: str):
 
     await ctx.send(format_rider_assignment(name, slot))
 
+
 @bot.command()
 async def manualassign(ctx, *, args: str):
     global rider_data
@@ -1054,14 +1274,7 @@ async def manualassign(ctx, *, args: str):
         await ctx.send(f"**{name}** is already assigned. Remove or reassign them first.")
         return
 
-    error = manual_assign_rider_slot(
-        rider_data,
-        name,
-        role,
-        wing_name,
-        section_name,
-        squad_name
-    )
+    error = manual_assign_rider_slot(rider_data, name, role, wing_name, section_name, squad_name)
 
     if error:
         await ctx.send(error)
@@ -1069,6 +1282,7 @@ async def manualassign(ctx, *, args: str):
 
     save_json_file(RIDER_FILE, rider_data)
     await ctx.send(format_manual_rider_assignment(name, role, wing_name, section_name, squad_name))
+
 
 @bot.command()
 async def removerider(ctx, *, name: str):
@@ -1082,6 +1296,7 @@ async def removerider(ctx, *, name: str):
 
     save_json_file(RIDER_FILE, rider_data)
     await ctx.send(result)
+
 
 @bot.command()
 async def reassignrider(ctx, *, name: str):
@@ -1106,15 +1321,13 @@ async def reassignrider(ctx, *, name: str):
 
     await ctx.send(f"{removed}\n{format_rider_assignment(name, slot)}")
 
+
 @bot.command()
 async def riderslots(ctx):
     output = format_taken_riders(rider_data)
+    for chunk in split_long_message(output):
+        await ctx.send(chunk)
 
-    if len(output) <= 2000:
-        await ctx.send(output)
-    else:
-        for i in range(0, len(output), 2000):
-            await ctx.send(output[i:i + 2000])
 
 @bot.command()
 async def resetriders(ctx):
@@ -1152,6 +1365,7 @@ async def assigninfantry(ctx, *, name: str):
 
     await ctx.send(format_hidden_assignment(name, slot))
 
+
 @bot.command()
 async def manualinfantry(ctx, *, args: str):
     global infantry_data
@@ -1188,6 +1402,7 @@ async def manualinfantry(ctx, *, args: str):
     save_json_file(INFANTRY_FILE, infantry_data)
     await ctx.send(f"⚔️ **{name}** manually assigned as **{role}**.")
 
+
 @bot.command()
 async def removeinfantry(ctx, *, name: str):
     global infantry_data
@@ -1200,6 +1415,7 @@ async def removeinfantry(ctx, *, name: str):
 
     save_json_file(INFANTRY_FILE, infantry_data)
     await ctx.send(result)
+
 
 @bot.command()
 async def reassigninfantry(ctx, *, name: str):
@@ -1230,15 +1446,13 @@ async def reassigninfantry(ctx, *, name: str):
 
     await ctx.send(f"{removed}\n{format_hidden_assignment(name, slot)}")
 
+
 @bot.command()
 async def infantryslots(ctx):
     output = format_simple_taken(infantry_data, "Cadets")
+    for chunk in split_long_message(output):
+        await ctx.send(chunk)
 
-    if len(output) <= 2000:
-        await ctx.send(output)
-    else:
-        for i in range(0, len(output), 2000):
-            await ctx.send(output[i:i + 2000])
 
 @bot.command()
 async def resetinfantry(ctx):
@@ -1276,6 +1490,7 @@ async def assignscribe(ctx, *, name: str):
 
     await ctx.send(format_hidden_assignment(name, slot))
 
+
 @bot.command()
 async def manualscribe(ctx, *, args: str):
     global scribe_data
@@ -1312,6 +1527,7 @@ async def manualscribe(ctx, *, args: str):
     save_json_file(SCRIBE_FILE, scribe_data)
     await ctx.send(f"📚 **{name}** manually assigned as **{role}**.")
 
+
 @bot.command()
 async def removescribe(ctx, *, name: str):
     global scribe_data
@@ -1324,6 +1540,7 @@ async def removescribe(ctx, *, name: str):
 
     save_json_file(SCRIBE_FILE, scribe_data)
     await ctx.send(result)
+
 
 @bot.command()
 async def reassignscribe(ctx, *, name: str):
@@ -1354,15 +1571,13 @@ async def reassignscribe(ctx, *, name: str):
 
     await ctx.send(f"{removed}\n{format_hidden_assignment(name, slot)}")
 
+
 @bot.command()
 async def scribeslots(ctx):
     output = format_simple_taken(scribe_data, "Scribes")
+    for chunk in split_long_message(output):
+        await ctx.send(chunk)
 
-    if len(output) <= 2000:
-        await ctx.send(output)
-    else:
-        for i in range(0, len(output), 2000):
-            await ctx.send(output[i:i + 2000])
 
 @bot.command()
 async def resetscribes(ctx):
@@ -1400,6 +1615,7 @@ async def assignhealer(ctx, *, name: str):
 
     await ctx.send(format_hidden_assignment(name, slot))
 
+
 @bot.command()
 async def manualhealer(ctx, *, args: str):
     global healer_data
@@ -1436,6 +1652,7 @@ async def manualhealer(ctx, *, args: str):
     save_json_file(HEALER_FILE, healer_data)
     await ctx.send(f"🌿 **{name}** manually assigned as **{role}**.")
 
+
 @bot.command()
 async def removehealer(ctx, *, name: str):
     global healer_data
@@ -1448,6 +1665,7 @@ async def removehealer(ctx, *, name: str):
 
     save_json_file(HEALER_FILE, healer_data)
     await ctx.send(result)
+
 
 @bot.command()
 async def reassignhealer(ctx, *, name: str):
@@ -1478,15 +1696,13 @@ async def reassignhealer(ctx, *, name: str):
 
     await ctx.send(f"{removed}\n{format_hidden_assignment(name, slot)}")
 
+
 @bot.command()
 async def healerslots(ctx):
     output = format_simple_taken(healer_data, "Trainees")
+    for chunk in split_long_message(output):
+        await ctx.send(chunk)
 
-    if len(output) <= 2000:
-        await ctx.send(output)
-    else:
-        for i in range(0, len(output), 2000):
-            await ctx.send(output[i:i + 2000])
 
 @bot.command()
 async def resethealers(ctx):
@@ -1500,75 +1716,82 @@ async def resethealers(ctx):
 # -----------------------------
 @bot.command()
 async def rphelp(ctx):
-    await ctx.send(
-        "**📖 Basgaith Command List**\n\n"
+    help_text = """**📖 Basgaith Command List**
 
-        "**🐉 Dragon Commands**\n"
-        "`!threshing` → Roll dragon color + tail\n"
-        "`!dragonspeak` → Dragon approval or disapproval\n"
-        "`!dragonaction` → Random dragon action\n\n"
+**🐉 Dragon Commands**
+`!threshing` → Roll dragon color + tail
+`!dragonspeak` → Dragon approval or disapproval
+`!dragonaction` → Random dragon action
 
-        "**✨ Signets**\n"
-        "`!signet` → Manifest your signet\n\n"
+**✨ Signets**
+`!signet` → Manifest your signet
 
-        "**The Quadrants**\n"
-        "`!infantry` → Roll for a combat specialty\n"
-        "`!scribe` → Roll for a subject specialty\n"
-        "`!healer` → Roll for a healer discipline\n\n"
+**🧾 Character Creation**
+`!createcharacter` → Fully random character
+`!createcharacter riders` → Rider character
+`!createcharacter infantry` → Infantry character
+`!createcharacter scribes` → Scribe character
+`!createcharacter healers` → Healer character
 
-        "**🐉 Rider Formation**\n"
-        "`!assignrider name` → Assign a rider to a random open slot\n"
-        "`!manualassign name | role | wing | section | squad` → Manually assign a rider\n"
-        "`!removerider name` → Remove one rider\n"
-        "`!reassignrider name` → Remove and reroll one rider\n"
-        "`!riderslots` → Show filled rider slots\n"
-        "`!resetriders` → Reset rider formation\n\n"
+**The Quadrants**
+`!infantry` → Roll for a combat specialty
+`!scribe` → Roll for a subject specialty
+`!healer` → Roll for a healer discipline
 
-        "**⚔️ Infantry Formation**\n"
-        "`!assigninfantry name` → Assign infantry rank\n"
-        "`!manualinfantry name | role | division` → Manually assign infantry rank\n"
-        "`!removeinfantry name` → Remove infantry assignment\n"
-        "`!reassigninfantry name` → Reroll infantry rank\n"
-        "`!infantryslots` → Show filled infantry slots\n"
-        "`!resetinfantry` → Reset infantry formation\n\n"
+**🐉 Rider Formation**
+`!assignrider name` → Assign a rider to a random open slot
+`!manualassign name | role | wing | section | squad` → Manually assign a rider
+`!removerider name` → Remove one rider
+`!reassignrider name` → Remove and reroll one rider
+`!riderslots` → Show filled rider slots
+`!resetriders` → Reset rider formation
 
-        "**📚 Scribe Formation**\n"
-        "`!assignscribe name` → Assign scribe rank\n"
-        "`!manualscribe name | role | order` → Manually assign scribe rank\n"
-        "`!removescribe name` → Remove scribe assignment\n"
-        "`!reassignscribe name` → Reroll scribe rank\n"
-        "`!scribeslots` → Show filled scribe slots\n"
-        "`!resetscribes` → Reset scribe formation\n\n"
+**⚔️ Infantry Formation**
+`!assigninfantry name` → Assign infantry rank
+`!manualinfantry name | role | division` → Manually assign infantry rank
+`!removeinfantry name` → Remove infantry assignment
+`!reassigninfantry name` → Reroll infantry rank
+`!infantryslots` → Show filled infantry slots
+`!resetinfantry` → Reset infantry formation
 
-        "**🌿 Healer Formation**\n"
-        "`!assignhealer name` → Assign healer rank\n"
-        "`!manualhealer name | role | circle` → Manually assign healer rank\n"
-        "`!removehealer name` → Remove healer assignment\n"
-        "`!reassignhealer name` → Reroll healer rank\n"
-        "`!healerslots` → Show filled healer slots\n"
-        "`!resethealers` → Reset healer formation\n\n"
+**📚 Scribe Formation**
+`!assignscribe name` → Assign scribe rank
+`!manualscribe name | role | order` → Manually assign scribe rank
+`!removescribe name` → Remove scribe assignment
+`!reassignscribe name` → Reroll scribe rank
+`!scribeslots` → Show filled scribe slots
+`!resetscribes` → Reset scribe formation
 
-        "**🎲 Standard D&D Dice**\n"
-        "`!d4`\n"
-        "`!d6`\n"
-        "`!d8`\n"
-        "`!d10`\n"
-        "`!d12`\n"
-        "`!d20`\n"
-        "`!d100`\n\n"
+**🌿 Healer Formation**
+`!assignhealer name` → Assign healer rank
+`!manualhealer name | role | circle` → Manually assign healer rank
+`!removehealer name` → Remove healer assignment
+`!reassignhealer name` → Reroll healer rank
+`!healerslots` → Show filled healer slots
+`!resethealers` → Reset healer formation
 
-        "**🎲 Custom Dice Rolls**\n"
-        "`!roll d4`\n"
-        "`!roll d6`\n"
-        "`!roll d8`\n"
-        "`!roll d10`\n"
-        "`!roll d12`\n"
-        "`!roll d20`\n"
-        "`!roll d100`\n"
-        "`!roll 2d6`\n"
-        "`!roll 1d20+3`\n"
-        "`!roll 2d8-1`\n"
-    )
+**🎲 Standard D&D Dice**
+`!d4`
+`!d6`
+`!d8`
+`!d10`
+`!d12`
+`!d20`
+`!d100`
+
+**🎲 Custom Dice Rolls**
+`!roll d4`
+`!roll d6`
+`!roll d8`
+`!roll d10`
+`!roll d12`
+`!roll d20`
+`!roll d100`
+`!roll 2d6`
+`!roll 1d20+3`
+`!roll 2d8-1`"""
+    for chunk in split_long_message(help_text):
+        await ctx.send(chunk)
 
 # -----------------------------
 # RUN BOT
