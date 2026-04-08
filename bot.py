@@ -2340,7 +2340,7 @@ async def fight(ctx, *, args: str):
 
     parts = [part.strip() for part in args.split("|")]
     if len(parts) != 2 or not parts[0] or not parts[1]:
-        await ctx.send("Use: `!fight character one | character two`")
+        await ctx.send("Use: `!fight character one / character two`")
         return
 
     char_one = resolve_active_character(parts[0])
