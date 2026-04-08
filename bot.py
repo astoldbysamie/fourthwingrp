@@ -7,6 +7,7 @@ import random
 import re
 import json
 import copy
+from datetime import datetime
 
 # -----------------------------
 # LOAD TOKEN
@@ -41,6 +42,7 @@ RIDER_FILE = "rider_formation.json"
 INFANTRY_FILE = "infantry_formation.json"
 SCRIBE_FILE = "scribe_formation.json"
 HEALER_FILE = "healer_formation.json"
+FIGHT_FILE = "fight_records.json"
 
 # -----------------------------
 # RIDER FORMATION DATA
@@ -429,6 +431,7 @@ rider_data = load_json_file(RIDER_FILE, DEFAULT_RIDER_STRUCTURE)
 infantry_data = load_json_file(INFANTRY_FILE, DEFAULT_INFANTRY_STRUCTURE)
 scribe_data = load_json_file(SCRIBE_FILE, DEFAULT_SCRIBE_STRUCTURE)
 healer_data = load_json_file(HEALER_FILE, DEFAULT_HEALER_STRUCTURE)
+fight_records = load_json_file(FIGHT_FILE, {})
 
 # -----------------------------
 # BASIC HELPERS
@@ -445,12 +448,38 @@ def pick_two_unique(options):
     return random.sample(options, 2)
 
 
-def safe_title_pick(options):
-    title = random.choice(options)
-    return title if title else "none"
+def pick_three_unique(options):
+    return random.sample(options, 3)
+
+
+def name_exists_anywhere(name: str) -> bool:
+    return (
+        find_existing_rider_assignment(rider_data, name)
+        or find_name_in_simple_structure(infantry_data, name, "Cadets")
+        or find_name_in_simple_structure(scribe_data, name, "Scribes")
+        or find_name_in_simple_structure(healer_data, name, "Trainees")
+    )
+
+
+def generate_unique_full_name(max_attempts: int = 500) -> str:
+    for _ in range(max_attempts):
+        candidate = random_full_name()
+        if not name_exists_anywhere(candidate):
+            return candidate
+    raise RuntimeError("Could not generate a unique character name. Add more names to the pools.")
+
+
+def format_rider_path_from_slot(slot):
+    if len(slot) == 2:
+        return slot[1]
+    if len(slot) == 3:
+        return f"{slot[1]} / {slot[2]}"
+    return f"{slot[1]} / {slot[2]} / {slot[3]}"
 
 
 def create_character_profile(quadrant_choice: str | None = None) -> str:
+    global rider_data, infantry_data, scribe_data, healer_data
+
     valid_quadrants = ["riders", "infantry", "scribes", "healers"]
 
     if quadrant_choice is None:
@@ -460,14 +489,14 @@ def create_character_profile(quadrant_choice: str | None = None) -> str:
         if quadrant not in valid_quadrants:
             quadrant = random.choice(valid_quadrants)
 
-    name = random_full_name()
+    name = generate_unique_full_name()
     alias = random.choice(ALIASES)
     age = random.randint(21, 27)
     gender, pronouns = random.choice(PRONOUN_SETS)
     alliance = random.choice(ALLIANCES)
     positive_1, positive_2 = pick_two_unique(POSITIVE_TRAITS)
     negative_1, negative_2 = pick_two_unique(NEGATIVE_TRAITS)
-    aesthetic_1, aesthetic_2 = pick_two_unique(AESTHETICS)
+    aesthetic_1, aesthetic_2, aesthetic_3 = pick_three_unique(AESTHETICS)
 
     base = [
         f"**Title:** {name}",
@@ -479,49 +508,97 @@ def create_character_profile(quadrant_choice: str | None = None) -> str:
         "",
         f"• **positive traits:** {positive_1}, {positive_2}",
         f"• **negative traits:** {negative_1}, {negative_2}",
-        f"• **aesthetics:** {aesthetic_1}, {aesthetic_2}",
+        f"• **aesthetics:** {aesthetic_1}, {aesthetic_2}, {aesthetic_3}",
         "",
         "***Chose One Of These:***",
         ""
     ]
 
     if quadrant == "riders":
-        dragon_color = random.choice(DRAGON_COLORS)
-        dragon_tail = random.choice(DRAGON_TAILS)
-        section = random.choice(["Flame Section", "Claw Section", "Tail Section"])
-        wing = random.choice(["First Wing", "Second Wing", "Third Wing", "Fourth Wing"])
-        squad = "First Squad"
+        slots = get_open_rider_slots(rider_data)
+        if not slots:
+            raise RuntimeError("No rider slots left.")
+
+        slot = random.choice(slots)
+        assign_rider_slot(rider_data, name, slot)
+        save_json_file(RIDER_FILE, rider_data)
+
         base.extend([
             "✦ **RIDERS**",
             f"• **dragon name:** {random.choice(DRAGON_NAMES)}",
-            f"• **dragon color-tail:** {dragon_color} {dragon_tail}",
+            f"• **dragon color-tail:** {random.choice(DRAGON_COLORS)} {random.choice(DRAGON_TAILS)}",
             f"• **dragon pronouns:** {random.choice(DRAGON_PRONOUNS)}",
             f"• **signet:** {random.choice(SIGNETS)}",
-            f"• **wing / section / squad:** {wing} / {section} / {squad}",
-            f"• **title if applicable:** {safe_title_pick(RIDER_TITLES)}"
+            f"• **wing / section / squad:** {format_rider_path_from_slot(slot)}",
+            f"• **title if applicable:** {slot[0]}"
         ])
     elif quadrant == "infantry":
+        slots = get_simple_open_slots(
+            infantry_data,
+            ["High Commander", "Commander"],
+            ["Captain", "Sergeant", "Corporal", "Soldier"],
+            "Cadet",
+            "Cadets"
+        )
+        if not slots:
+            raise RuntimeError("No infantry slots left.")
+
+        slot = random.choice(slots)
+        assign_simple_slot(infantry_data, name, slot, "Cadet", "Cadets")
+        save_json_file(INFANTRY_FILE, infantry_data)
+
+        division_value = slot[1] if slot[1] != "_chain" else "High Chain"
         base.extend([
             "✦ **INFANTRY**",
             f"• **specialization:** {random.choice(INFANTRY_SPECIALTIES)}",
             f"• **combat trait:** {random.choice(COMBAT_TRAITS)}",
-            f"• **division:** {random.choice(INFANTRY_DIVISIONS)}",
-            f"• **title if applicable:** {safe_title_pick(INFANTRY_TITLES)}"
+            f"• **division:** {division_value}",
+            f"• **title if applicable:** {slot[0]}"
         ])
     elif quadrant == "scribes":
+        slots = get_simple_open_slots(
+            scribe_data,
+            ["Grand Maester", "Head Archivist"],
+            ["Master Scholar", "Curator", "Archivist", "Senior Scribe"],
+            "Scribe",
+            "Scribes"
+        )
+        if not slots:
+            raise RuntimeError("No scribe slots left.")
+
+        slot = random.choice(slots)
+        assign_simple_slot(scribe_data, name, slot, "Scribe", "Scribes")
+        save_json_file(SCRIBE_FILE, scribe_data)
+
+        order_value = slot[1] if slot[1] != "_chain" else "High Chain"
         base.extend([
             "✦ **SCRIBES**",
             f"• **subject specialty:** {random.choice(SCRIBE_SPECIALTIES)}",
             f"• **academic strength:** {random.choice(ACADEMIC_STRENGTHS)}",
-            f"• **archive order:** {random.choice(SCRIBE_ORDERS)}",
-            f"• **title if applicable:** {safe_title_pick(SCRIBE_TITLES)}"
+            f"• **archive order:** {order_value}",
+            f"• **title if applicable:** {slot[0]}"
         ])
     else:
+        slots = get_simple_open_slots(
+            healer_data,
+            ["Arch Healer", "Healer"],
+            ["Senior Practitioner", "Practitioner", "Medic", "Acolyte"],
+            "Trainee",
+            "Trainees"
+        )
+        if not slots:
+            raise RuntimeError("No healer slots left.")
+
+        slot = random.choice(slots)
+        assign_simple_slot(healer_data, name, slot, "Trainee", "Trainees")
+        save_json_file(HEALER_FILE, healer_data)
+
+        circle_value = slot[1] if slot[1] != "_chain" else "High Chain"
         base.extend([
             "✦ **HEALERS**",
-            f"• **circle:** {random.choice(HEALER_CIRCLES)}",
+            f"• **circle:** {circle_value}",
             f"• **specialization:** {random.choice(HEALER_SPECIALTIES)}",
-            f"• **title if applicable:** {safe_title_pick(HEALER_TITLES)}"
+            f"• **title if applicable:** {slot[0]}"
         ])
 
     return "\n".join(base)
@@ -539,6 +616,280 @@ def split_long_message(text: str, chunk_size: int = 1900):
     if remaining:
         chunks.append(remaining)
     return chunks
+
+# -----------------------------
+# FIGHT TRACKING HELPERS
+# -----------------------------
+def get_all_active_characters():
+    characters = {}
+
+    for wing_name, wing in rider_data.items():
+        if wing["wingleader"]:
+            name = wing["wingleader"]
+            characters[normalize_name(name)] = {
+                "name": name,
+                "quadrant": "riders",
+                "role": "Wingleader",
+                "assignment": wing_name
+            }
+
+        if wing["executive_officer"]:
+            name = wing["executive_officer"]
+            characters[normalize_name(name)] = {
+                "name": name,
+                "quadrant": "riders",
+                "role": "Wing Executive Officer",
+                "assignment": wing_name
+            }
+
+        for section_name, section in wing["sections"].items():
+            if section["section_leader"]:
+                name = section["section_leader"]
+                characters[normalize_name(name)] = {
+                    "name": name,
+                    "quadrant": "riders",
+                    "role": "Section Leader",
+                    "assignment": f"{wing_name} / {section_name}"
+                }
+
+            if section["executive_officer"]:
+                name = section["executive_officer"]
+                characters[normalize_name(name)] = {
+                    "name": name,
+                    "quadrant": "riders",
+                    "role": "Section Executive Officer",
+                    "assignment": f"{wing_name} / {section_name}"
+                }
+
+            for squad_name, squad in section["squads"].items():
+                if squad["squad_leader"]:
+                    name = squad["squad_leader"]
+                    characters[normalize_name(name)] = {
+                        "name": name,
+                        "quadrant": "riders",
+                        "role": "Squad Leader",
+                        "assignment": f"{wing_name} / {section_name} / {squad_name}"
+                    }
+
+                if squad["executive_squad_leader"]:
+                    name = squad["executive_squad_leader"]
+                    characters[normalize_name(name)] = {
+                        "name": name,
+                        "quadrant": "riders",
+                        "role": "Executive Squad Leader",
+                        "assignment": f"{wing_name} / {section_name} / {squad_name}"
+                    }
+
+                for cadet in squad["cadets"]:
+                    characters[normalize_name(cadet)] = {
+                        "name": cadet,
+                        "quadrant": "riders",
+                        "role": "Cadet",
+                        "assignment": f"{wing_name} / {section_name} / {squad_name}"
+                    }
+
+    for role_name, assigned_name in infantry_data["_chain"].items():
+        if assigned_name:
+            characters[normalize_name(assigned_name)] = {
+                "name": assigned_name,
+                "quadrant": "infantry",
+                "role": role_name,
+                "assignment": "High Chain"
+            }
+
+    for division_name, division in infantry_data.items():
+        if division_name == "_chain":
+            continue
+        for role_name, assigned_name in division.items():
+            if role_name == "Cadets":
+                for cadet in assigned_name:
+                    characters[normalize_name(cadet)] = {
+                        "name": cadet,
+                        "quadrant": "infantry",
+                        "role": "Cadet",
+                        "assignment": division_name
+                    }
+            elif assigned_name:
+                characters[normalize_name(assigned_name)] = {
+                    "name": assigned_name,
+                    "quadrant": "infantry",
+                    "role": role_name,
+                    "assignment": division_name
+                }
+
+    for role_name, assigned_name in scribe_data["_chain"].items():
+        if assigned_name:
+            characters[normalize_name(assigned_name)] = {
+                "name": assigned_name,
+                "quadrant": "scribes",
+                "role": role_name,
+                "assignment": "High Chain"
+            }
+
+    for order_name, order in scribe_data.items():
+        if order_name == "_chain":
+            continue
+        for role_name, assigned_name in order.items():
+            if role_name == "Scribes":
+                for scribe in assigned_name:
+                    characters[normalize_name(scribe)] = {
+                        "name": scribe,
+                        "quadrant": "scribes",
+                        "role": "Scribe",
+                        "assignment": order_name
+                    }
+            elif assigned_name:
+                characters[normalize_name(assigned_name)] = {
+                    "name": assigned_name,
+                    "quadrant": "scribes",
+                    "role": role_name,
+                    "assignment": order_name
+                }
+
+    for role_name, assigned_name in healer_data["_chain"].items():
+        if assigned_name:
+            characters[normalize_name(assigned_name)] = {
+                "name": assigned_name,
+                "quadrant": "healers",
+                "role": role_name,
+                "assignment": "High Chain"
+            }
+
+    for circle_name, circle in healer_data.items():
+        if circle_name == "_chain":
+            continue
+        for role_name, assigned_name in circle.items():
+            if role_name == "Trainees":
+                for trainee in assigned_name:
+                    characters[normalize_name(trainee)] = {
+                        "name": trainee,
+                        "quadrant": "healers",
+                        "role": "Trainee",
+                        "assignment": circle_name
+                    }
+            elif assigned_name:
+                characters[normalize_name(assigned_name)] = {
+                    "name": assigned_name,
+                    "quadrant": "healers",
+                    "role": role_name,
+                    "assignment": circle_name
+                }
+
+    return characters
+
+
+def resolve_active_character(name: str):
+    return get_all_active_characters().get(normalize_name(name))
+
+
+def ensure_fight_record(name: str):
+    key = normalize_name(name)
+    if key not in fight_records:
+        fight_records[key] = {
+            "name": name,
+            "wins": 0,
+            "losses": 0,
+            "draws": 0,
+            "fights": []
+        }
+    return fight_records[key]
+
+
+def record_fight_result(name, opponent, roll, opponent_roll, outcome):
+    record = ensure_fight_record(name)
+    record["name"] = name
+
+    if outcome == "win":
+        record["wins"] += 1
+    elif outcome == "loss":
+        record["losses"] += 1
+    else:
+        record["draws"] += 1
+
+    record["fights"].append({
+        "opponent": opponent,
+        "roll": roll,
+        "opponent_roll": opponent_roll,
+        "outcome": outcome,
+        "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+    })
+
+
+def get_fight_summary(name: str):
+    return fight_records.get(normalize_name(name))
+
+
+def format_masterboard():
+    active = get_all_active_characters()
+    if not active:
+        return "No active characters found."
+
+    rows = []
+    for info in active.values():
+        record = fight_records.get(normalize_name(info["name"]), {"wins": 0, "losses": 0, "draws": 0, "fights": []})
+        rows.append((
+            info["quadrant"],
+            info["name"],
+            info["role"],
+            info["assignment"],
+            record["wins"],
+            record["losses"],
+            record["draws"],
+            len(record["fights"])
+        ))
+
+    rows.sort(key=lambda x: (x[0], x[1].lower()))
+
+    lines = ["**Masterboard**"]
+    current_quadrant = None
+    for quadrant, name, role, assignment, wins, losses, draws, total in rows:
+        if quadrant != current_quadrant:
+            current_quadrant = quadrant
+            lines.append("")
+            lines.append(f"**{quadrant.title()}**")
+        lines.append(f"• **{name}** — {role} | {assignment} | W-L-D: {wins}-{losses}-{draws} | Fights: {total}")
+
+    return "\n".join(lines)
+
+
+def format_fight_log(name: str):
+    info = resolve_active_character(name)
+    record = get_fight_summary(name)
+
+    if not info and not record:
+        return None
+
+    display_name = info["name"] if info else record["name"]
+    role = info["role"] if info else "Inactive"
+    quadrant = info["quadrant"].title() if info else "Unknown"
+    assignment = info["assignment"] if info else "Not currently assigned"
+
+    if not record or not record["fights"]:
+        return (
+            f"**Fight Log: {display_name}**\n"
+            f"Quadrant: **{quadrant}**\n"
+            f"Role: **{role}**\n"
+            f"Assignment: **{assignment}**\n"
+            f"Record: **0-0-0**\n"
+            "No fights recorded yet."
+        )
+
+    lines = [
+        f"**Fight Log: {display_name}**",
+        f"Quadrant: **{quadrant}**",
+        f"Role: **{role}**",
+        f"Assignment: **{assignment}**",
+        f"Record: **{record['wins']}-{record['losses']}-{record['draws']}**",
+        "",
+        "**Recent Fights**"
+    ]
+
+    for fight in record["fights"][-15:][::-1]:
+        outcome = fight["outcome"].title()
+        lines.append(f"• vs **{fight['opponent']}** — {outcome} ({fight['roll']} to {fight['opponent_roll']}) on {fight['timestamp']}")
+
+    return "\n".join(lines)
+
 
 # -----------------------------
 # EVENTS
@@ -718,7 +1069,12 @@ async def signet(ctx):
 # -----------------------------
 @bot.command(name="createcharacter", aliases=["character", "oc", "makecharacter"])
 async def createcharacter(ctx, quadrant: str = None):
-    profile = create_character_profile(quadrant)
+    try:
+        profile = create_character_profile(quadrant)
+    except RuntimeError as e:
+        await ctx.send(f"**Character creation failed:** {e}")
+        return
+
     for chunk in split_long_message(profile):
         await ctx.send(chunk)
 
@@ -1711,6 +2067,343 @@ async def resethealers(ctx):
     save_json_file(HEALER_FILE, healer_data)
     await ctx.send("Healer formation has been reset.")
 
+
+# -----------------------------
+# GAUNTLET + MAT COMMANDS
+# -----------------------------
+GAUNTLET_OBSTACLES = [
+    "a rain-slick beam that narrows halfway across",
+    "a broken ladder missing two key rungs",
+    "a swinging rope over an open drop",
+    "a cracked stone ledge with barely enough room for your boots",
+    "a vertical climb with loose handholds",
+    "a narrow bridge shuddering in the wind",
+    "a sequence of uneven platforms set too far apart",
+    "a warped beam angled over open air",
+    "a shattered stair run with gaps between steps",
+    "a hanging chain route that bites cold into your hands",
+    "a low crawl through splintered supports",
+    "a blind turn where the only way forward is a jump"
+]
+
+GAUNTLET_APPROACHES = [
+    "moves with careful precision, testing every foothold before committing",
+    "pushes forward fast, trusting momentum over caution",
+    "keeps low and balanced, refusing to waste a single motion",
+    "takes the riskier path to gain time",
+    "pauses just long enough to study the structure, then commits",
+    "uses brute determination rather than grace",
+    "keeps their breathing even and their focus brutally narrow",
+    "recovers quickly from a slip and keeps moving",
+    "treats the whole run like a fight to be won",
+    "leans into instinct, moving before fear can settle in"
+]
+
+GAUNTLET_COMPLICATIONS = [
+    "A board shifts under their weight.",
+    "A crosswind hits at the worst possible moment.",
+    "Their grip slips for one sickening second.",
+    "Another cadet's earlier mistake has left debris in the way.",
+    "Their shoulder clips a support hard enough to bruise.",
+    "The next foothold is farther than it first looked.",
+    "The route creaks loud enough to rattle everyone's nerves.",
+    "A boot skids on damp wood.",
+    "Their hand catches a splintered edge.",
+    "They have to choose between speed and balance in a heartbeat."
+]
+
+GAUNTLET_OUTCOMES = [
+    "They make it across cleanly.",
+    "They stumble at the end but recover before falling.",
+    "They finish hard, scraped up, and breathing like they've swallowed fire.",
+    "They clear the obstacle with seconds to spare.",
+    "They hang for a terrifying moment, then haul themselves up.",
+    "They fall short, catch themselves, and drag their weight back into position.",
+    "They miss the clean route and force their way through on sheer stubbornness.",
+    "They go down, hit a lower level, and have to start again from there.",
+    "They freeze for half a breath, then choose motion over fear.",
+    "They fail the obstacle and drop out of the run."
+]
+
+GAUNTLET_INJURIES = [
+    "bloody palms",
+    "a twisted wrist",
+    "a bruised rib",
+    "a torn sleeve and a cut shoulder",
+    "splinters buried in one hand",
+    "a badly scraped knee",
+    "a cracked lip from hitting a beam",
+    "a wrenched ankle",
+    "a deep bruise across the back",
+    "shaking hands they can't quite steady"
+]
+
+GAUNTLET_FLAVOR = [
+    "Below, the stones wait without mercy.",
+    "The whole structure groans like it wants them dead.",
+    "Every cadet behind them feels the pressure of the delay.",
+    "One mistake is all the Gauntlet ever needs.",
+    "The wind turns the height into its own kind of enemy.",
+    "No one speaks. No one needs to.",
+    "Failure here is public, immediate, and unforgettable.",
+    "For one brutal stretch of time, there is only the next move."
+]
+
+MAT_CHALLENGES = [
+    "knife disarm drill",
+    "close-combat spar",
+    "shield-break exercise",
+    "grappling round",
+    "speed-and-footwork bout",
+    "endurance spar",
+    "wooden blade match",
+    "paired takedown drill",
+    "reaction test",
+    "two-minute pressure round"
+]
+
+
+def collect_active_rider_names(data):
+    names = []
+
+    for wing in data.values():
+        if wing["wingleader"]:
+            names.append(wing["wingleader"])
+        if wing["executive_officer"]:
+            names.append(wing["executive_officer"])
+
+        for section in wing["sections"].values():
+            if section["section_leader"]:
+                names.append(section["section_leader"])
+            if section["executive_officer"]:
+                names.append(section["executive_officer"])
+
+            for squad in section["squads"].values():
+                if squad["squad_leader"]:
+                    names.append(squad["squad_leader"])
+                if squad["executive_squad_leader"]:
+                    names.append(squad["executive_squad_leader"])
+                names.extend(squad["cadets"])
+
+    return names
+
+
+def collect_active_infantry_names(data):
+    names = []
+
+    for assigned_name in data["_chain"].values():
+        if assigned_name:
+            names.append(assigned_name)
+
+    for group_name, group in data.items():
+        if group_name == "_chain":
+            continue
+
+        for assigned_name in group.values():
+            if isinstance(assigned_name, list):
+                names.extend(assigned_name)
+            elif assigned_name:
+                names.append(assigned_name)
+
+    return names
+
+
+def collect_active_mat_characters():
+    seen = set()
+    active = []
+
+    for name in collect_active_rider_names(rider_data) + collect_active_infantry_names(infantry_data):
+        normalized = normalize_name(name)
+        if normalized not in seen:
+            seen.add(normalized)
+            active.append(name)
+
+    return active
+
+
+def make_mat_pairs(names):
+    shuffled = names[:]
+    random.shuffle(shuffled)
+    pairs = []
+    bye = None
+
+    if len(shuffled) % 2 == 1:
+        bye = shuffled.pop()
+
+    for i in range(0, len(shuffled), 2):
+        pairs.append((shuffled[i], shuffled[i + 1], random.choice(MAT_CHALLENGES)))
+
+    return pairs, bye
+
+
+@bot.command()
+async def gauntlet(ctx):
+    obstacle = random.choice(GAUNTLET_OBSTACLES)
+    approach = random.choice(GAUNTLET_APPROACHES)
+    complication = random.choice(GAUNTLET_COMPLICATIONS)
+    outcome = random.choice(GAUNTLET_OUTCOMES)
+    flavor = random.choice(GAUNTLET_FLAVOR)
+
+    await ctx.send(
+        f"**The Gauntlet**\n"
+        f"Obstacle: **{obstacle}**\n"
+        f"Approach: **{ctx.author.display_name}** {approach}.\n"
+        f"Complication: **{complication}**\n"
+        f"Outcome: **{outcome}**\n"
+        f"{flavor}"
+    )
+
+
+@bot.command()
+async def gauntlethazard(ctx):
+    hazard = random.choice(GAUNTLET_OBSTACLES)
+    complication = random.choice(GAUNTLET_COMPLICATIONS)
+    await ctx.send(
+        f"**Gauntlet Hazard**\n"
+        f"The next obstacle is **{hazard}**.\n"
+        f"Complication: **{complication}**"
+    )
+
+
+@bot.command()
+async def gauntletaction(ctx):
+    approach = random.choice(GAUNTLET_APPROACHES)
+    flavor = random.choice(GAUNTLET_FLAVOR)
+    await ctx.send(
+        f"**Gauntlet Action**\n"
+        f"**{ctx.author.display_name}** {approach}.\n"
+        f"{flavor}"
+    )
+
+
+@bot.command()
+async def gauntletinjury(ctx):
+    injury = random.choice(GAUNTLET_INJURIES)
+    await ctx.send(
+        f"**Gauntlet Consequence**\n"
+        f"The run leaves them with **{injury}**."
+    )
+
+
+@bot.command()
+async def gauntletoutcome(ctx):
+    outcome = random.choice(GAUNTLET_OUTCOMES)
+    await ctx.send(
+        f"**Gauntlet Outcome**\n"
+        f"**{outcome}**"
+    )
+
+
+@bot.command(name="activemats")
+async def activemats(ctx):
+    active_names = collect_active_mat_characters()
+
+    if not active_names:
+        await ctx.send("No active rider or infantry characters found.")
+        return
+
+    lines = ["**Active Mat Pool**"]
+    lines.extend([f"• {name}" for name in active_names])
+
+    for chunk in split_long_message("\n".join(lines)):
+        await ctx.send(chunk)
+
+
+@bot.command(name="matpairs", aliases=["matchallenge", "mats"])
+async def matpairs(ctx):
+    active_names = collect_active_mat_characters()
+
+    if len(active_names) < 2:
+        await ctx.send("Not enough active rider and infantry characters to make mat pairings.")
+        return
+
+    pairs, bye = make_mat_pairs(active_names)
+    lines = ["**Mat Challenge Pairings**"]
+
+    for index, (first, second, challenge) in enumerate(pairs, start=1):
+        lines.append(f"{index}. **{first}** vs **{second}** : {challenge}")
+
+    if bye:
+        lines.append("")
+        lines.append(f"**Unpaired this round:** {bye}")
+
+    for chunk in split_long_message("\n".join(lines)):
+        await ctx.send(chunk)
+
+
+# -----------------------------
+# FIGHT COMMANDS
+# -----------------------------
+@bot.command()
+async def fight(ctx, *, args: str):
+    global fight_records
+
+    parts = [part.strip() for part in args.split("|")]
+    if len(parts) != 2 or not parts[0] or not parts[1]:
+        await ctx.send("Use: `!fight character one | character two`")
+        return
+
+    char_one = resolve_active_character(parts[0])
+    char_two = resolve_active_character(parts[1])
+
+    if not char_one:
+        await ctx.send(f"Could not find an active character named **{parts[0]}**.")
+        return
+
+    if not char_two:
+        await ctx.send(f"Could not find an active character named **{parts[1]}**.")
+        return
+
+    if normalize_name(char_one["name"]) == normalize_name(char_two["name"]):
+        await ctx.send("A character cannot fight themselves.")
+        return
+
+    roll_one = random.randint(1, 20)
+    roll_two = random.randint(1, 20)
+
+    if roll_one > roll_two:
+        result_text = f"**Winner:** {char_one['name']}"
+        outcome_one = "win"
+        outcome_two = "loss"
+    elif roll_two > roll_one:
+        result_text = f"**Winner:** {char_two['name']}"
+        outcome_one = "loss"
+        outcome_two = "win"
+    else:
+        result_text = "**Result:** Draw"
+        outcome_one = "draw"
+        outcome_two = "draw"
+
+    record_fight_result(char_one["name"], char_two["name"], roll_one, roll_two, outcome_one)
+    record_fight_result(char_two["name"], char_one["name"], roll_two, roll_one, outcome_two)
+    save_json_file(FIGHT_FILE, fight_records)
+
+    await ctx.send(
+        f"**Mat Challenge**\n"
+        f"{char_one['name']}: **{roll_one}**\n"
+        f"{char_two['name']}: **{roll_two}**\n"
+        f"{result_text}"
+    )
+
+
+@bot.command(aliases=["fightrecord", "record", "fights"])
+async def fightlog(ctx, *, name: str):
+    output = format_fight_log(name)
+    if output is None:
+        await ctx.send(f"Could not find any character or fight record for **{name}**.")
+        return
+
+    for chunk in split_long_message(output):
+        await ctx.send(chunk)
+
+
+@bot.command()
+async def masterboard(ctx):
+    output = format_masterboard()
+    for chunk in split_long_message(output):
+        await ctx.send(chunk)
+
+
 # -----------------------------
 # HELP COMMAND
 # -----------------------------
@@ -1725,6 +2418,17 @@ async def rphelp(ctx):
 
 **✨ Signets**
 `!signet` → Manifest your signet
+
+**🪵 The Gauntlet**
+`!gauntlet` → Full Gauntlet obstacle + complication + outcome
+`!gauntlethazard` → Roll the next obstacle
+`!gauntletaction` → Roll a Gauntlet action beat
+`!gauntletinjury` → Roll an injury or consequence
+`!gauntletoutcome` → Roll the final result
+
+**🥊 Mat Challenges**
+`!activemats` → Show all active rider + infantry characters in the mat pool
+`!matpairs` → Randomly pair every active rider + infantry character for mat challenges
 
 **🧾 Character Creation**
 `!createcharacter` → Fully random character
