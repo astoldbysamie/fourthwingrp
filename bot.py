@@ -2534,70 +2534,135 @@ async def masterboard(ctx):
 async def rphelp(ctx):
     help_text = """**📖 Basgaith Command Guide**
 
-# 🧭 CHARACTER SETUP (START HERE)
+## 🧭 STEP 1: CHOOSE YOUR QUADRANT
 
-## Choose Your Quadrant & Role
-!infantry → Rolls your Infantry combat specialty (Vanguard, Bastion, etc.)
-!scribe → Rolls your Scribe study focus
-!healer → Rolls your Healer specialization
+!infantry → Roll your combat specialty  
+!scribe → Roll your study focus  
+!healer → Roll your healer discipline  
 
-!assignrider name → Assigns a rider to a random wing/section/squad
-!manualassign name / role / wing / section / squad → Manually assign your rider
-
-> You should start here. This determines your place in Basgiath.
+🐉 Riders continue below ↓
 
 ---
 
-## 🐉 SPECIALTIES & DRAGONS
+## 🐉 STEP 2: DRAGON + SIGNET
 
-!threshing → Rolls your dragon color and tail type
-!dragoncolor → Rolls dragon color only (d6 system)
-!dragonspeak → Generates your dragon’s reaction (approval/disapproval)
-!dragonaction → Generates a random dragon behavior
+!threshing → Roll your dragon color + tail  
+!signet → Roll your signet ability  
 
-!signet → Rolls your signet ability
-
-> Riders should complete this after choosing placement.
+Optional:
+!dragonspeak → Dragon approval/disapproval  
+!dragonaction → Random dragon behavior  
 
 ---
 
-## 🎲 FULL CHARACTER GENERATION
+## 🪵 STEP 3: THE GAUNTLET
 
-!fullcharacter → Generates a full randomized character (quadrant, role, dragon, signet, etc.)
-
-> Use this if you want everything decided for you instead of manual setup.
-
----
-
-# ⚔️ RP ACTIONS & COMBAT
-
-## 🎲 Basic Rolls
-!roll → Standard dice roll
-!d20 → Rolls a d20 for checks, combat, etc.
+!gauntlet → Full gauntlet run  
+!gauntlethazard → Obstacle  
+!gauntletaction → Action moment  
+!gauntletinjury → Injury/consequence  
+!gauntletoutcome → Final result  
 
 ---
 
-## ⚔️ Fights
-!fight name1,name2 → Both names roll a d20. Higher roll wins
-!fight name1/name2 → Alternative format using /
+## 🎭 STEP 4: CREATE YOUR CHARACTER
 
-!fullfight name1,name2 → Generates a full combat scene with a winner
+!createcharacter → Fully random character  
 
-> You can input ANY names. They do NOT need to be pre-registered.
+OR choose a specific type:
+!createcharacter riders  
+!createcharacter infantry  
+!createcharacter scribes  
+!createcharacter healers  
+
+Aliases:
+!character / !oc / !makecharacter  
 
 ---
 
-## 🐉 Dragon Interaction
-!dragoncheck → Rolls for dragon reaction in a scene
-!dragonaction → Random dragon behavior during RP
+## 🐉 STEP 5: RIDER FORMATION
+
+!assignrider name → Auto assign a rider  
+
+!manualassign name | role | wing | section | First Squad  
+→ Manually assign a rider  
+
+⚠️ IMPORTANT:
+• You MUST type **First Squad** exactly  
+• Other squad names will NOT work  
+
+Valid structure:
+• Wings → First, Second, Third, Fourth  
+• Sections → Flame, Claw, Tail  
+• Squad → First Squad ONLY  
+
+Example:
+!manualassign Violet | Squad Leader | First Wing | Flame Section | First Squad  
 
 ---
 
-## 🧹 Fight History
+## ⚔️ OTHER FORMATIONS
 
-!clearfights name → Clears all fight history for one character  
+INFANTRY  
+!assigninfantry name  
+!manualinfantry name | role | division  
 
-> Use this to reset records or clean up old fights.
+SCRIBES  
+!assignscribe name  
+!manualscribe name | role | order  
+
+HEALERS  
+!assignhealer name  
+!manualhealer name | role | circle  
+
+---
+
+## 🥊 MAT CHALLENGES
+
+!activemats → Show all active fighters  
+!matpairs → Randomly pair fighters  
+
+Aliases:
+!matchallenge  
+!mats  
+
+---
+
+## ⚔️ COMBAT
+
+!fight name1,name2 → Quick fight (d20 roll)  
+!fight name1/name2 → Alternate format  
+
+!fullfight name1,name2 → Full scene with winner  
+
+---
+
+## 🧹 FIGHT HISTORY
+
+!fightlog name → View fight history  
+
+Aliases:
+!fightrecord  
+!record  
+!fights  
+
+!masterboard → Leaderboard  
+
+!clearfights name → Clear one character  
+!clearallfights → Clear ALL fights  
+
+---
+
+## 🎲 DICE ROLLING
+
+Standard:
+!d4 !d6 !d8 !d10 !d12 !d20 !d100  
+
+Custom:
+!roll d20  
+!roll 2d6  
+!roll 1d20+3  
+!roll 2d8-1  
 
 """
 
