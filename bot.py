@@ -2625,7 +2625,6 @@ async def rphelp(ctx):
         "!charhelp\n"
         "!rphelp"
     )
-"""
 
     for chunk in split_long_message(help_text):
         await ctx.send(chunk)
