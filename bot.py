@@ -2349,17 +2349,19 @@ async def gauntlethazard(ctx):
         f"Complication: **{complication}**"
     )
 
-
 @bot.command()
-async def gauntletaction(ctx):
+async def gauntletaction(ctx, *, name: str = None):
+    if not name:
+        name = ctx.author.display_name
+
     approach = random.choice(GAUNTLET_APPROACHES)
     flavor = random.choice(GAUNTLET_FLAVOR)
+
     await ctx.send(
         f"**Gauntlet Action**\n"
-        f"**{ctx.author.display_name}** {approach}.\n"
+        f"**{name}** {approach}.\n"
         f"{flavor}"
     )
-
 
 @bot.command()
 async def gauntletinjury(ctx):
