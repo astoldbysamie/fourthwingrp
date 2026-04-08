@@ -969,12 +969,33 @@ async def on_message(message):
 # BASGAITH COMMANDS
 # -----------------------------
 @bot.command()
-async def clearallfights(ctx):
-    fight_history.clear()
-    await ctx.send("🔥 All fight history has been wiped.")
-    
-    @bot.command()
+async def clearfights(ctx, *, name: str):
+    global fight_records
 
+    key = normalize_name(name)
+
+    if key in fight_records:
+        del fight_records[key]
+
+        for fighter in fight_records.values():
+            fighter["fights"] = [
+                fight for fight in fighter["fights"]
+                if normalize_name(fight["opponent"]) != key
+            ]
+
+        save_json_file(FIGHT_FILE, fight_records)
+        await ctx.send(f"🧹 Cleared all fight history for **{name}**.")
+    else:
+        await ctx.send(f"⚠️ No fight history found for **{name}**.")
+
+
+@bot.command()
+async def clearallfights(ctx):
+    global fight_records
+
+    fight_records.clear()
+    save_json_file(FIGHT_FILE, fight_records)
+    await ctx.send("🔥 All fight history has been wiped.")
 
 @bot.command()
 async def threshing(ctx):
