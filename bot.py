@@ -2527,108 +2527,97 @@ async def masterboard(ctx):
         await ctx.send(chunk)
 
 
-# -----------------------------
+ # -----------------------------
 # HELP COMMAND
 # -----------------------------
 @bot.command()
 async def rphelp(ctx):
-    await ctx.send(
-        "📖 BASGIATH COMMAND LIST\n\n"
+    help_text = (
+        "📖 BASGIATH COMMAND GUIDE\n\n"
 
         "🧭 Character Setup\n"
-        "!infantry\n"
-        "!scribe\n"
-        "!healer\n"
-        "!threshing\n"
-        "!signet\n"
-        "!createcharacter\n"
-        "!createcharacter riders\n"
-        "!createcharacter infantry\n"
-        "!createcharacter scribes\n"
-        "!createcharacter healers\n"
-        "!character\n"
-        "!oc\n"
-        "!makecharacter\n\n"
+        "!infantry → Roll your infantry specialty\n"
+        "!scribe → Roll your scribe focus\n"
+        "!healer → Roll your healer discipline\n"
+        "!threshing → Roll your dragon color + tail\n"
+        "!signet → Roll your signet ability\n"
+        "!createcharacter → Fully random character\n"
+        "!createcharacter riders/infantry/scribes/healers → Generate specific type\n"
+        "!character / !oc / !makecharacter → Aliases for character creation\n\n"
 
         "🐉 Dragon Interactions\n"
-        "!dragonspeak\n"
-        "!dragonaction\n\n"
+        "!dragonspeak → Dragon approval or disapproval\n"
+        "!dragonaction → Random dragon behavior\n\n"
 
-        "🪵 Gauntlet\n"
-        "!gauntlet\n"
-        "!gauntlethazard\n"
-        "!gauntletaction\n"
-        "!gauntletinjury\n"
-        "!gauntletoutcome\n\n"
+        "🪵 Gauntlet System\n"
+        "!gauntlet → Full gauntlet run (scene + result)\n"
+        "!gauntlethazard → Next obstacle\n"
+        "!gauntletaction → Action moment\n"
+        "!gauntletinjury → Injury or consequence\n"
+        "!gauntletoutcome → Final result\n\n"
 
         "🐉 Assignment (Auto)\n"
-        "!assignrider\n"
-        "!assigninfantry\n"
-        "!assignscribe\n"
-        "!assignhealer\n\n"
+        "!assignrider name → Auto assign rider position\n"
+        "!assigninfantry name → Auto assign infantry role\n"
+        "!assignscribe name → Auto assign scribe role\n"
+        "!assignhealer name → Auto assign healer role\n\n"
 
         "✍️ Assignment (Manual)\n"
-        "!manualassign name | role | wing | section | First Squad\n"
-        "!manualinfantry name | role | division\n"
-        "!manualscribe name | role | order\n"
-        "!manualhealer name | role | circle\n\n"
+        "!manualassign name | role | wing | section | First Squad → Assign rider manually\n"
+        "!manualinfantry name | role | division → Assign infantry manually\n"
+        "!manualscribe name | role | order → Assign scribe manually\n"
+        "!manualhealer name | role | circle → Assign healer manually\n"
+        "⚠️ Rider manual assign ONLY uses 'First Squad'\n\n"
 
         "🔄 Reassign / Remove\n"
-        "!removerider\n"
-        "!reassignrider\n"
-        "!removeinfantry\n"
-        "!reassigninfantry\n"
-        "!removescribe\n"
-        "!reassignscribe\n"
-        "!removehealer\n"
-        "!reassignhealer\n\n"
+        "!removerider → Remove rider\n"
+        "!reassignrider → Remove + reroll rider\n"
+        "!removeinfantry / !reassigninfantry → Infantry control\n"
+        "!removescribe / !reassignscribe → Scribe control\n"
+        "!removehealer / !reassignhealer → Healer control\n\n"
 
         "📊 View Slots\n"
-        "!riderslots\n"
-        "!infantryslots\n"
-        "!scribeslots\n"
-        "!healerslots\n\n"
+        "!riderslots → View rider formation\n"
+        "!infantryslots → View infantry formation\n"
+        "!scribeslots → View scribe formation\n"
+        "!healerslots → View healer formation\n\n"
 
         "🧹 Reset\n"
-        "!resetriders\n"
-        "!resetinfantry\n"
-        "!resetscribes\n"
-        "!resethealers\n\n"
+        "!resetriders → Reset rider formation\n"
+        "!resetinfantry → Reset infantry formation\n"
+        "!resetscribes → Reset scribe formation\n"
+        "!resethealers → Reset healer formation\n\n"
 
         "🥊 Mat System\n"
-        "!activemats\n"
-        "!matpairs\n"
-        "!matchallenge\n"
-        "!mats\n\n"
+        "!activemats → Show active fighters\n"
+        "!matpairs → Randomly pair fighters\n"
+        "!matchallenge / !mats → Aliases\n\n"
 
         "⚔️ Combat\n"
-        "!fight name1,name2\n"
-        "!fight name1/name2\n"
-        "!fullfight name1,name2\n\n"
+        "!fight name1,name2 → Quick d20 fight\n"
+        "!fight name1/name2 → Alternate format\n"
+        "!fullfight name1,name2 → Full scene with winner\n\n"
 
         "📜 Fight Records\n"
-        "!fightlog\n"
-        "!fightrecord\n"
-        "!record\n"
-        "!fights\n"
-        "!masterboard\n\n"
+        "!fightlog name → View fight history\n"
+        "!fightrecord / !record / !fights → Aliases\n"
+        "!masterboard → Leaderboard\n\n"
 
         "🧹 Fight History\n"
-        "!clearfights\n"
-        "!clearallfights\n\n"
+        "!clearfights name → Clear one character's fights\n"
+        "!clearallfights → Clear ALL fights\n\n"
 
         "🎲 Dice\n"
-        "!roll\n"
-        "!d4 !d6 !d8 !d10 !d12 !d20 !d100\n\n"
+        "!roll → Custom dice (ex: 2d6, 1d20+3)\n"
+        "!d4 !d6 !d8 !d10 !d12 !d20 !d100 → Standard dice\n\n"
 
         "📖 Help\n"
-        "!charhelp\n"
-        "!rphelp"
+        "!charhelp → Character help\n"
+        "!rphelp → Show this guide\n"
     )
 
     for chunk in split_long_message(help_text):
         await ctx.send(chunk)
-
 
 # -----------------------------
 # RUN BOT
