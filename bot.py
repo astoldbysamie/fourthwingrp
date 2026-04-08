@@ -2532,138 +2532,99 @@ async def masterboard(ctx):
 # -----------------------------
 @bot.command()
 async def rphelp(ctx):
-    help_text = """**📖 Basgaith Command Guide**
+    await ctx.send(
+        "📖 BASGIATH COMMAND LIST\n\n"
 
-## 🧭 STEP 1: CHOOSE YOUR QUADRANT
+        "🧭 Character Setup\n"
+        "!infantry\n"
+        "!scribe\n"
+        "!healer\n"
+        "!threshing\n"
+        "!signet\n"
+        "!createcharacter\n"
+        "!createcharacter riders\n"
+        "!createcharacter infantry\n"
+        "!createcharacter scribes\n"
+        "!createcharacter healers\n"
+        "!character\n"
+        "!oc\n"
+        "!makecharacter\n\n"
 
-!infantry → Roll your combat specialty  
-!scribe → Roll your study focus  
-!healer → Roll your healer discipline  
+        "🐉 Dragon Interactions\n"
+        "!dragonspeak\n"
+        "!dragonaction\n\n"
 
-🐉 Riders continue below ↓
+        "🪵 Gauntlet\n"
+        "!gauntlet\n"
+        "!gauntlethazard\n"
+        "!gauntletaction\n"
+        "!gauntletinjury\n"
+        "!gauntletoutcome\n\n"
 
----
+        "🐉 Assignment (Auto)\n"
+        "!assignrider\n"
+        "!assigninfantry\n"
+        "!assignscribe\n"
+        "!assignhealer\n\n"
 
-## 🐉 STEP 2: DRAGON + SIGNET
+        "✍️ Assignment (Manual)\n"
+        "!manualassign name | role | wing | section | First Squad\n"
+        "!manualinfantry name | role | division\n"
+        "!manualscribe name | role | order\n"
+        "!manualhealer name | role | circle\n\n"
 
-!threshing → Roll your dragon color + tail  
-!signet → Roll your signet ability  
+        "🔄 Reassign / Remove\n"
+        "!removerider\n"
+        "!reassignrider\n"
+        "!removeinfantry\n"
+        "!reassigninfantry\n"
+        "!removescribe\n"
+        "!reassignscribe\n"
+        "!removehealer\n"
+        "!reassignhealer\n\n"
 
-Optional:
-!dragonspeak → Dragon approval/disapproval  
-!dragonaction → Random dragon behavior  
+        "📊 View Slots\n"
+        "!riderslots\n"
+        "!infantryslots\n"
+        "!scribeslots\n"
+        "!healerslots\n\n"
 
----
+        "🧹 Reset\n"
+        "!resetriders\n"
+        "!resetinfantry\n"
+        "!resetscribes\n"
+        "!resethealers\n\n"
 
-## 🪵 STEP 3: THE GAUNTLET
+        "🥊 Mat System\n"
+        "!activemats\n"
+        "!matpairs\n"
+        "!matchallenge\n"
+        "!mats\n\n"
 
-!gauntlet → Full gauntlet run  
-!gauntlethazard → Obstacle  
-!gauntletaction → Action moment  
-!gauntletinjury → Injury/consequence  
-!gauntletoutcome → Final result  
+        "⚔️ Combat\n"
+        "!fight name1,name2\n"
+        "!fight name1/name2\n"
+        "!fullfight name1,name2\n\n"
 
----
+        "📜 Fight Records\n"
+        "!fightlog\n"
+        "!fightrecord\n"
+        "!record\n"
+        "!fights\n"
+        "!masterboard\n\n"
 
-## 🎭 STEP 4: CREATE YOUR CHARACTER
+        "🧹 Fight History\n"
+        "!clearfights\n"
+        "!clearallfights\n\n"
 
-!createcharacter → Fully random character  
+        "🎲 Dice\n"
+        "!roll\n"
+        "!d4 !d6 !d8 !d10 !d12 !d20 !d100\n\n"
 
-OR choose a specific type:
-!createcharacter riders  
-!createcharacter infantry  
-!createcharacter scribes  
-!createcharacter healers  
-
-Aliases:
-!character / !oc / !makecharacter  
-
----
-
-## 🐉 STEP 5: RIDER FORMATION
-
-!assignrider name → Auto assign a rider  
-
-!manualassign name | role | wing | section | First Squad  
-→ Manually assign a rider  
-
-⚠️ IMPORTANT:
-• You MUST type **First Squad** exactly  
-• Other squad names will NOT work  
-
-Valid structure:
-• Wings → First, Second, Third, Fourth  
-• Sections → Flame, Claw, Tail  
-• Squad → First Squad ONLY  
-
-Example:
-!manualassign Violet | Squad Leader | First Wing | Flame Section | First Squad  
-
----
-
-## ⚔️ OTHER FORMATIONS
-
-INFANTRY  
-!assigninfantry name  
-!manualinfantry name | role | division  
-
-SCRIBES  
-!assignscribe name  
-!manualscribe name | role | order  
-
-HEALERS  
-!assignhealer name  
-!manualhealer name | role | circle  
-
----
-
-## 🥊 MAT CHALLENGES
-
-!activemats → Show all active fighters  
-!matpairs → Randomly pair fighters  
-
-Aliases:
-!matchallenge  
-!mats  
-
----
-
-## ⚔️ COMBAT
-
-!fight name1,name2 → Quick fight (d20 roll)  
-!fight name1/name2 → Alternate format  
-
-!fullfight name1,name2 → Full scene with winner  
-
----
-
-## 🧹 FIGHT HISTORY
-
-!fightlog name → View fight history  
-
-Aliases:
-!fightrecord  
-!record  
-!fights  
-
-!masterboard → Leaderboard  
-
-!clearfights name → Clear one character  
-!clearallfights → Clear ALL fights  
-
----
-
-## 🎲 DICE ROLLING
-
-Standard:
-!d4 !d6 !d8 !d10 !d12 !d20 !d100  
-
-Custom:
-!roll d20  
-!roll 2d6  
-!roll 1d20+3  
-!roll 2d8-1  
-
+        "📖 Help\n"
+        "!charhelp\n"
+        "!rphelp"
+    )
 """
 
     for chunk in split_long_message(help_text):
