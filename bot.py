@@ -990,7 +990,7 @@ async def healer(ctx):
 @bot.command()
 async def dragonspeak(ctx):
     approval = [
-        "Your dragon rumbles low in approval.",
+        "the dragon rumbles low in approval.",
         "A warm pulse of satisfaction brushes through the bond.",
         "Your dragon lowers their head, clearly pleased.",
         "A proud huff escapes your dragon.",
@@ -1587,7 +1587,7 @@ def manual_assign_simple(data, name, role, group_name, highest_roles, group_role
 # RIDER FORMATION COMMANDS
 # -----------------------------
 @bot.command()
-async def assignrider(ctx, *, name: str):
+async def rider(ctx, *, name: str):
     global rider_data
 
     if find_existing_rider_assignment(rider_data, name):
@@ -1655,7 +1655,7 @@ async def removerider(ctx, *, name: str):
 
 
 @bot.command()
-async def reassignrider(ctx, *, name: str):
+async def rider(ctx, *, name: str):
     global rider_data
 
     removed = remove_rider(rider_data, name)
@@ -2412,21 +2412,24 @@ async def rphelp(ctx):
     help_text = """**📖 Basgaith Command List**
 
 **Creating A Character By Hand**
-> For Riders
+> 🐉 For Riders
 `!threshing` → Roll dragon color + tail
-`!assignrider name` → Assign a rider to a random open slot
+`!signet` → Manifest your signet
+
+**For Randomizing A Character **
+
+`!rider name` → Assign a rider to a random open slot
 `!manualassign name | role | wing | section | squad` → Manually assign a rider
 `!removerider name` → Remove one rider
 `!reassignrider name` → Remove and reroll one rider
 `!riderslots` → Show filled rider slots
 
 
-** Interacting with your Dragon**
+** Interacting with a Dragon**
 `!dragonspeak` → Dragon approval or disapproval
 `!dragonaction` → Random dragon action
 
 **✨ Signets**
-`!signet` → Manifest your signet
 
 **🪵 The Gauntlet**
 `!gauntlet` → Full Gauntlet obstacle + complication + outcome
