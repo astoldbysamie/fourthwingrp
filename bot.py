@@ -2336,46 +2336,49 @@ async def matpairs(ctx):
 # -----------------------------
 @bot.command()
 async def fight(ctx, *, args: str):
-    global fight_records
-
-    parts = [part.strip() for part in args.split("|")]
-    if len(parts) != 2 or not parts[0] or not parts[1]:
-        await ctx.send("Use: `!fight character one / character two`")
+    try:
+        name1_input, name2_input = [x.strip() for x in args.split("|")]
+    except ValueError:
+        await ctx.send("Use: `!fight name1 | name2`")
         return
 
-    char_one = resolve_active_character(parts[0])
-    char_two = resolve_active_character(parts[1])
+    all_characters = get_all_active_characters()
 
-    if not char_one:
-        await ctx.send(f"Could not find an active character named **{parts[0]}**.")
+    name1, error1 = find_character_by_partial(name1_input, all_characters)
+    name2, error2 = find_character_by_partial(name2_input, all_characters)
+
+    if error1:
+        await ctx.send(error1)
         return
 
-    if not char_two:
-        await ctx.send(f"Could not find an active character named **{parts[1]}**.")
+    if error2:
+        await ctx.send(error2)
         return
 
-    if normalize_name(char_one["name"]) == normalize_name(char_two["name"]):
-        await ctx.send("A character cannot fight themselves.")
-        return
+    # Roll d20
+    roll1 = random.randint(1, 20)
+    roll2 = random.randint(1, 20)
 
-    roll_one = random.randint(1, 20)
-    roll_two = random.randint(1, 20)
-
-    if roll_one > roll_two:
-        result_text = f"**Winner:** {char_one['name']}"
-        outcome_one = "win"
-        outcome_two = "loss"
-    elif roll_two > roll_one:
-        result_text = f"**Winner:** {char_two['name']}"
-        outcome_one = "loss"
-        outcome_two = "win"
+    # Determine result
+    if roll1 > roll2:
+        result = f"**{name1} wins!**"
+        winner, loser = name1, name2
+    elif roll2 > roll1:
+        result = f"**{name2} wins!**"
+        winner, loser = name2, name1
     else:
-        result_text = "**Result:** Draw"
-        outcome_one = "draw"
-        outcome_two = "draw"
+        result = "**It's a draw!**"
+        winner = loser = None
 
-    record_fight_result(char_one["name"], char_two["name"], roll_one, roll_two, outcome_one)
-    record_fight_result(char_two["name"], char_one["name"], roll_two, roll_one, outcome_two)
+    # Save fight record (if you already have this system)
+    record_fight(name1, name2, roll1, roll2, winner)
+
+    await ctx.send(
+        "**⚔️ Fight Result**\n"
+        f"> {name1}: {roll1}\n"
+        f"> {name2}: {roll2}\n\n"
+        f"{result}"
+    )
     save_json_file(FIGHT_FILE, fight_records)
 
     await ctx.send(
