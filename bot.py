@@ -969,6 +969,14 @@ async def on_message(message):
 # BASGAITH COMMANDS
 # -----------------------------
 @bot.command()
+async def clearallfights(ctx):
+    fight_history.clear()
+    await ctx.send("🔥 All fight history has been wiped.")
+    
+    @bot.command()
+
+
+@bot.command()
 async def threshing(ctx):
     await ctx.send(
         f"**Threshing Result**\n"
@@ -2503,85 +2511,71 @@ async def masterboard(ctx):
 async def rphelp(ctx):
     help_text = """**📖 Basgaith Command Guide**
 
-**1️⃣ Choose Your Quadrant + Placement First**
-Start here if you already know your character's name and just need Codex to place them into the structure of their quadrant before you decide the rest.
+# 🧭 CHARACTER SETUP (START HERE)
 
-**🐉 Riders Placement**
-`!assignrider name` → Randomly assigns that rider to any open rider slot. This can place them into leadership, executive, squad leader, or cadet positions depending on what is still open.
-`!manualassign name | role | wing | section | squad` → Manually places a rider exactly where you want them in the formation. Use this when you already know their position. Only include section and squad if the role needs them.
-`!removerider name` → Removes that rider from their current rider placement so the slot becomes open again.
-`!reassignrider name` → Removes that rider from their current rider placement and rerolls them into a different open rider slot.
-`!riderslots` → Shows every currently filled rider slot so you can see what is already taken.
-`!resetriders` → Fully resets the rider formation back to the default setup.
+## Choose Your Quadrant & Role
+!infantry → Rolls your Infantry combat specialty (Vanguard, Bastion, etc.)
+!scribe → Rolls your Scribe study focus
+!healer → Rolls your Healer specialization
 
-**⚔️ Infantry Placement**
-`!assigninfantry name` → Randomly assigns an infantry character to an open infantry rank.
-`!manualinfantry name | role | division` → Manually assigns an infantry character to the exact rank you want.
-`!removeinfantry name` → Removes that infantry character from their current placement.
-`!reassigninfantry name` → Removes that infantry character and rerolls a new open infantry placement.
-`!infantryslots` → Shows every filled infantry role.
-`!resetinfantry` → Fully resets the infantry formation.
+!assignrider name → Assigns a rider to a random wing/section/squad
+!manualassign name / role / wing / section / squad → Manually assign your rider
 
-**📚 Scribe Placement**
-`!assignscribe name` → Randomly assigns a scribe character to an open scribe rank.
-`!manualscribe name | role | order` → Manually assigns a scribe to the exact role you want.
-`!removescribe name` → Removes that scribe from their current placement.
-`!reassignscribe name` → Removes that scribe and rerolls a new open scribe placement.
-`!scribeslots` → Shows every filled scribe role.
-`!resetscribes` → Fully resets the scribe formation.
+> You should start here. This determines your place in Basgiath.
 
-**🌿 Healer Placement**
-`!assignhealer name` → Randomly assigns a healer character to an open healer rank.
-`!manualhealer name | role | circle` → Manually assigns a healer to the exact role you want.
-`!removehealer name` → Removes that healer from their current placement.
-`!reassignhealer name` → Removes that healer and rerolls a new open healer placement.
-`!healerslots` → Shows every filled healer role.
-`!resethealers` → Fully resets the healer formation.
+---
 
-**2️⃣ Roll Their Specialty, Dragon, or Signet**
-Once your character has a quadrant and placement, use these to decide their specialty, bonded dragon details, or powers.
+## 🐉 SPECIALTIES & DRAGONS
 
-`!threshing` → Rolls a rider's dragon color and tail type. Use this after deciding someone is in the Riders Quadrant and you want their bonded dragon result.
-`!signet` → Rolls signet manifestation flavor and whether it lands as a more common or rarer result. Use this for rider power manifestation scenes.
-`!infantry` → Rolls an infantry combat specialty such as Vanguard, Bastion, Skirmisher, Breaker, Ranger, or Tactician.
-`!scribe` → Rolls a scribe subject specialty such as Archive, Chronicle, Lexicon, Intelligence, Cipher, or Restricted.
-`!healer` → Rolls a healer discipline such as Battlefield, Surgical, Recovery, Emergency, Experimental, or Dragonkind.
+!threshing → Rolls your dragon color and tail type
+!dragoncolor → Rolls dragon color only (d6 system)
+!dragonspeak → Generates your dragon’s reaction (approval/disapproval)
+!dragonaction → Generates a random dragon behavior
 
-**3️⃣ Full Character Generation**
-Use these when you want Codex to build most or all of the character for you instead of choosing each detail yourself.
+!signet → Rolls your signet ability
 
-`!createcharacter` → Creates a fully random character from any quadrant. It handles name, traits, aesthetics, assignment, and quadrant-based details automatically.
-`!createcharacter riders` → Creates a full random rider character with rider-specific details included.
-`!createcharacter infantry` → Creates a full random infantry character with infantry-specific details included.
-`!createcharacter scribes` → Creates a full random scribe character with scribe-specific details included.
-`!createcharacter healers` → Creates a full random healer character with healer-specific details included.
-`!charhelp` → Shows the short version of the character generation commands if you only want the basics.
+> Riders should complete this after choosing placement.
 
-**4️⃣ RP Action Commands**
-Use these during threads, combat scenes, dragon scenes, training, or whenever you want Codex to generate a quick RP beat.
+---
 
-**Dragon RP**
-`!dragonspeak` → Gives a random dragon approval or disapproval response for bond moments, choices, or reactions.
-`!dragonaction` → Gives a random dragon movement, behavior, or reaction you can drop straight into a scene.
+## 🎲 FULL CHARACTER GENERATION
 
-**Gauntlet RP**
-`!gauntlet` → Generates a full Gauntlet moment with obstacle, approach, complication, and outcome all together.
-`!gauntlethazard` → Rolls the next Gauntlet obstacle or danger so you can build the scene yourself.
-`!gauntletaction` → Rolls a movement or action beat for the character during the Gauntlet.
-`!gauntletinjury` → Rolls an injury, setback, or consequence.
-`!gauntletoutcome` → Rolls the final result of the attempt.
+!fullcharacter → Generates a full randomized character (quadrant, role, dragon, signet, etc.)
 
-**Mat Challenges + Fights**
-`!activemats` → Shows active rider and infantry characters that are available for mat challenges or training matches.
-`!matpairs` → Randomly pairs active rider and infantry characters for training or sparring.
-`!fight name one,name two` or `!fight name one/name two` → Rolls one d20 for each name you type and declares the winner. This does not need stored character names. You can type any names you want.
-`!fullfight name one,name two` or `!fullfight name one/name two` → Rolls one d20 for each name, chooses the winner, and writes a short fight paragraph scene that includes the result.
-`!fightlog name` → Shows the saved fight history for that character, including wins, losses, draws, and recent opponents.
-`!masterboard` → Shows the stored fight records for active characters across the quadrants.
+> Use this if you want everything decided for you instead of manual setup.
 
-**🎲 Dice Commands**
-`!roll d20` → Rolls dice using standard D&D style formatting such as `d20`, `2d6`, or `1d20+3`.
-`!d4` `!d6` `!d8` `!d10` `!d12` `!d20` `!d100` → Quick single-die roll commands when you just need a fast number.
+---
+
+# ⚔️ RP ACTIONS & COMBAT
+
+## 🎲 Basic Rolls
+!roll → Standard dice roll
+!d20 → Rolls a d20 for checks, combat, etc.
+
+---
+
+## ⚔️ Fights
+!fight name1,name2 → Both names roll a d20. Higher roll wins
+!fight name1/name2 → Alternative format using /
+
+!fullfight name1,name2 → Generates a full combat scene with a winner
+
+> You can input ANY names. They do NOT need to be pre-registered.
+
+---
+
+## 🐉 Dragon Interaction
+!dragoncheck → Rolls for dragon reaction in a scene
+!dragonaction → Random dragon behavior during RP
+
+---
+
+## 🧹 Fight History
+
+!clearfights name → Clears all fight history for one character  
+
+> Use this to reset records or clean up old fights.
+
 """
 
     for chunk in split_long_message(help_text):
