@@ -819,6 +819,62 @@ def get_fight_summary(name: str):
     return fight_records.get(normalize_name(name))
 
 
+def parse_two_names(raw_args: str):
+    raw_args = raw_args.strip()
+    if "," in raw_args:
+        parts = [part.strip() for part in raw_args.split(",", 1)]
+    elif "/" in raw_args:
+        parts = [part.strip() for part in raw_args.split("/", 1)]
+    else:
+        return None, None
+
+    if len(parts) != 2 or not parts[0] or not parts[1]:
+        return None, None
+
+    return parts[0], parts[1]
+
+
+def build_fullfight_scene(name_one: str, roll_one: int, name_two: str, roll_two: int, winner: str | None):
+    openings = [
+        f"The training ring goes quiet as {name_one} and {name_two} square off, tension snapping between them before either one makes the first move.",
+        f"A hush falls over the mat as {name_one} faces {name_two}, both of them circling carefully while the crowd waits for someone to strike first.",
+        f"Boots scrape against the sparring floor as {name_one} and {name_two} step into range, each testing the other's defenses before the clash begins."
+    ]
+
+    momentum_one = [
+        f"{name_one} surges forward first, pressing the attack with sharp, relentless force.",
+        f"{name_one} finds an opening early and drives into it without hesitation.",
+        f"{name_one} keeps the pressure on, forcing the pace of the fight."
+    ]
+
+    momentum_two = [
+        f"{name_two} answers immediately, matching every movement with disciplined control.",
+        f"{name_two} recovers fast and turns the exchange with precise timing.",
+        f"{name_two} refuses to give ground, countering with clean, efficient strikes."
+    ]
+
+    draw_endings = [
+        f"Neither fighter can quite overpower the other, and the bout is finally called as a draw after a vicious, even exchange.",
+        f"The match ends with both fighters still standing, the result ruled a draw after neither manages a decisive advantage.",
+        f"In the end, neither gains the upper hand for long, and the fight is declared a draw."
+    ]
+
+    win_endings = [
+        f"At the last second, {winner} breaks through and claims the win, leaving no doubt about who controlled the final exchange.",
+        f"A final decisive move seals it, and {winner} comes away with the victory.",
+        f"The fight ends when {winner} lands the stronger finish and takes the win."
+    ]
+
+    lines = [
+        random.choice(openings),
+        f"{name_one} rolls **{roll_one}** while {name_two} rolls **{roll_two}**.",
+        random.choice(momentum_one),
+        random.choice(momentum_two),
+        random.choice(draw_endings if winner is None else win_endings)
+    ]
+    return " ".join(lines)
+
+
 def format_masterboard():
     active = get_all_active_characters()
     if not active:
@@ -2338,23 +2394,12 @@ async def matpairs(ctx):
 async def fight(ctx, *, args: str):
     global fight_records
 
-    parts = [part.strip() for part in args.split("|")]
-    if len(parts) != 2 or not parts[0] or not parts[1]:
-        await ctx.send("Use: `!fight character one | character two`")
+    name_one, name_two = parse_two_names(args)
+    if not name_one or not name_two:
+        await ctx.send("Use: `!fight name one,name two` or `!fight name one/name two`")
         return
 
-    char_one = resolve_active_character(parts[0])
-    char_two = resolve_active_character(parts[1])
-
-    if not char_one:
-        await ctx.send(f"Could not find an active character named **{parts[0]}**.")
-        return
-
-    if not char_two:
-        await ctx.send(f"Could not find an active character named **{parts[1]}**.")
-        return
-
-    if normalize_name(char_one["name"]) == normalize_name(char_two["name"]):
+    if normalize_name(name_one) == normalize_name(name_two):
         await ctx.send("A character cannot fight themselves.")
         return
 
@@ -2362,11 +2407,11 @@ async def fight(ctx, *, args: str):
     roll_two = random.randint(1, 20)
 
     if roll_one > roll_two:
-        result_text = f"**Winner:** {char_one['name']}"
+        result_text = f"**Winner:** {name_one}"
         outcome_one = "win"
         outcome_two = "loss"
     elif roll_two > roll_one:
-        result_text = f"**Winner:** {char_two['name']}"
+        result_text = f"**Winner:** {name_two}"
         outcome_one = "loss"
         outcome_two = "win"
     else:
@@ -2374,14 +2419,61 @@ async def fight(ctx, *, args: str):
         outcome_one = "draw"
         outcome_two = "draw"
 
-    record_fight_result(char_one["name"], char_two["name"], roll_one, roll_two, outcome_one)
-    record_fight_result(char_two["name"], char_one["name"], roll_two, roll_one, outcome_two)
+    record_fight_result(name_one, name_two, roll_one, roll_two, outcome_one)
+    record_fight_result(name_two, name_one, roll_two, roll_one, outcome_two)
     save_json_file(FIGHT_FILE, fight_records)
 
     await ctx.send(
         f"**Mat Challenge**\n"
-        f"{char_one['name']}: **{roll_one}**\n"
-        f"{char_two['name']}: **{roll_two}**\n"
+        f"{name_one}: **{roll_one}**\n"
+        f"{name_two}: **{roll_two}**\n"
+        f"{result_text}"
+    )
+
+
+@bot.command()
+async def fullfight(ctx, *, args: str):
+    global fight_records
+
+    name_one, name_two = parse_two_names(args)
+    if not name_one or not name_two:
+        await ctx.send("Use: `!fullfight name one,name two` or `!fullfight name one/name two`")
+        return
+
+    if normalize_name(name_one) == normalize_name(name_two):
+        await ctx.send("A character cannot fight themselves.")
+        return
+
+    roll_one = random.randint(1, 20)
+    roll_two = random.randint(1, 20)
+
+    if roll_one > roll_two:
+        winner = name_one
+        outcome_one = "win"
+        outcome_two = "loss"
+        result_text = f"**Winner:** {name_one}"
+    elif roll_two > roll_one:
+        winner = name_two
+        outcome_one = "loss"
+        outcome_two = "win"
+        result_text = f"**Winner:** {name_two}"
+    else:
+        winner = None
+        outcome_one = "draw"
+        outcome_two = "draw"
+        result_text = "**Result:** Draw"
+
+    record_fight_result(name_one, name_two, roll_one, roll_two, outcome_one)
+    record_fight_result(name_two, name_one, roll_two, roll_one, outcome_two)
+    save_json_file(FIGHT_FILE, fight_records)
+
+    scene = build_fullfight_scene(name_one, roll_one, name_two, roll_two, winner)
+
+    await ctx.send(
+        f"**Full Fight Scene**\n"
+        f"{scene}\n\n"
+        f"{name_one}: **{roll_one}**\n"
+        f"{name_two}: **{roll_two}**\n"
         f"{result_text}"
     )
 
@@ -2409,93 +2501,92 @@ async def masterboard(ctx):
 # -----------------------------
 @bot.command()
 async def rphelp(ctx):
-    help_text = """**📖 Basgaith Command List**
+    help_text = """**📖 Basgaith Command Guide**
 
-**🐉 Dragon Commands**
-`!threshing` → Roll dragon color + tail
-`!dragonspeak` → Dragon approval or disapproval
-`!dragonaction` → Random dragon action
+**1️⃣ Choose Your Quadrant + Placement First**
+Start here if you already know your character's name and just need Codex to place them into the structure of their quadrant before you decide the rest.
 
-**✨ Signets**
-`!signet` → Manifest your signet
+**🐉 Riders Placement**
+`!assignrider name` → Randomly assigns that rider to any open rider slot. This can place them into leadership, executive, squad leader, or cadet positions depending on what is still open.
+`!manualassign name | role | wing | section | squad` → Manually places a rider exactly where you want them in the formation. Use this when you already know their position. Only include section and squad if the role needs them.
+`!removerider name` → Removes that rider from their current rider placement so the slot becomes open again.
+`!reassignrider name` → Removes that rider from their current rider placement and rerolls them into a different open rider slot.
+`!riderslots` → Shows every currently filled rider slot so you can see what is already taken.
+`!resetriders` → Fully resets the rider formation back to the default setup.
 
-**🪵 The Gauntlet**
-`!gauntlet` → Full Gauntlet obstacle + complication + outcome
-`!gauntlethazard` → Roll the next obstacle
-`!gauntletaction` → Roll a Gauntlet action beat
-`!gauntletinjury` → Roll an injury or consequence
-`!gauntletoutcome` → Roll the final result
+**⚔️ Infantry Placement**
+`!assigninfantry name` → Randomly assigns an infantry character to an open infantry rank.
+`!manualinfantry name | role | division` → Manually assigns an infantry character to the exact rank you want.
+`!removeinfantry name` → Removes that infantry character from their current placement.
+`!reassigninfantry name` → Removes that infantry character and rerolls a new open infantry placement.
+`!infantryslots` → Shows every filled infantry role.
+`!resetinfantry` → Fully resets the infantry formation.
 
-**🥊 Mat Challenges**
-`!activemats` → Show all active rider + infantry characters in the mat pool
-`!matpairs` → Randomly pair every active rider + infantry character for mat challenges
+**📚 Scribe Placement**
+`!assignscribe name` → Randomly assigns a scribe character to an open scribe rank.
+`!manualscribe name | role | order` → Manually assigns a scribe to the exact role you want.
+`!removescribe name` → Removes that scribe from their current placement.
+`!reassignscribe name` → Removes that scribe and rerolls a new open scribe placement.
+`!scribeslots` → Shows every filled scribe role.
+`!resetscribes` → Fully resets the scribe formation.
 
-**🧾 Character Creation**
-`!createcharacter` → Fully random character
-`!createcharacter riders` → Rider character
-`!createcharacter infantry` → Infantry character
-`!createcharacter scribes` → Scribe character
-`!createcharacter healers` → Healer character
+**🌿 Healer Placement**
+`!assignhealer name` → Randomly assigns a healer character to an open healer rank.
+`!manualhealer name | role | circle` → Manually assigns a healer to the exact role you want.
+`!removehealer name` → Removes that healer from their current placement.
+`!reassignhealer name` → Removes that healer and rerolls a new open healer placement.
+`!healerslots` → Shows every filled healer role.
+`!resethealers` → Fully resets the healer formation.
 
-**The Quadrants**
-`!infantry` → Roll for a combat specialty
-`!scribe` → Roll for a subject specialty
-`!healer` → Roll for a healer discipline
+**2️⃣ Roll Their Specialty, Dragon, or Signet**
+Once your character has a quadrant and placement, use these to decide their specialty, bonded dragon details, or powers.
 
-**🐉 Rider Formation**
-`!assignrider name` → Assign a rider to a random open slot
-`!manualassign name | role | wing | section | squad` → Manually assign a rider
-`!removerider name` → Remove one rider
-`!reassignrider name` → Remove and reroll one rider
-`!riderslots` → Show filled rider slots
-`!resetriders` → Reset rider formation
+`!threshing` → Rolls a rider's dragon color and tail type. Use this after deciding someone is in the Riders Quadrant and you want their bonded dragon result.
+`!signet` → Rolls signet manifestation flavor and whether it lands as a more common or rarer result. Use this for rider power manifestation scenes.
+`!infantry` → Rolls an infantry combat specialty such as Vanguard, Bastion, Skirmisher, Breaker, Ranger, or Tactician.
+`!scribe` → Rolls a scribe subject specialty such as Archive, Chronicle, Lexicon, Intelligence, Cipher, or Restricted.
+`!healer` → Rolls a healer discipline such as Battlefield, Surgical, Recovery, Emergency, Experimental, or Dragonkind.
 
-**⚔️ Infantry Formation**
-`!assigninfantry name` → Assign infantry rank
-`!manualinfantry name | role | division` → Manually assign infantry rank
-`!removeinfantry name` → Remove infantry assignment
-`!reassigninfantry name` → Reroll infantry rank
-`!infantryslots` → Show filled infantry slots
-`!resetinfantry` → Reset infantry formation
+**3️⃣ Full Character Generation**
+Use these when you want Codex to build most or all of the character for you instead of choosing each detail yourself.
 
-**📚 Scribe Formation**
-`!assignscribe name` → Assign scribe rank
-`!manualscribe name | role | order` → Manually assign scribe rank
-`!removescribe name` → Remove scribe assignment
-`!reassignscribe name` → Reroll scribe rank
-`!scribeslots` → Show filled scribe slots
-`!resetscribes` → Reset scribe formation
+`!createcharacter` → Creates a fully random character from any quadrant. It handles name, traits, aesthetics, assignment, and quadrant-based details automatically.
+`!createcharacter riders` → Creates a full random rider character with rider-specific details included.
+`!createcharacter infantry` → Creates a full random infantry character with infantry-specific details included.
+`!createcharacter scribes` → Creates a full random scribe character with scribe-specific details included.
+`!createcharacter healers` → Creates a full random healer character with healer-specific details included.
+`!charhelp` → Shows the short version of the character generation commands if you only want the basics.
 
-**🌿 Healer Formation**
-`!assignhealer name` → Assign healer rank
-`!manualhealer name | role | circle` → Manually assign healer rank
-`!removehealer name` → Remove healer assignment
-`!reassignhealer name` → Reroll healer rank
-`!healerslots` → Show filled healer slots
-`!resethealers` → Reset healer formation
+**4️⃣ RP Action Commands**
+Use these during threads, combat scenes, dragon scenes, training, or whenever you want Codex to generate a quick RP beat.
 
-**🎲 Standard D&D Dice**
-`!d4`
-`!d6`
-`!d8`
-`!d10`
-`!d12`
-`!d20`
-`!d100`
+**Dragon RP**
+`!dragonspeak` → Gives a random dragon approval or disapproval response for bond moments, choices, or reactions.
+`!dragonaction` → Gives a random dragon movement, behavior, or reaction you can drop straight into a scene.
 
-**🎲 Custom Dice Rolls**
-`!roll d4`
-`!roll d6`
-`!roll d8`
-`!roll d10`
-`!roll d12`
-`!roll d20`
-`!roll d100`
-`!roll 2d6`
-`!roll 1d20+3`
-`!roll 2d8-1`"""
+**Gauntlet RP**
+`!gauntlet` → Generates a full Gauntlet moment with obstacle, approach, complication, and outcome all together.
+`!gauntlethazard` → Rolls the next Gauntlet obstacle or danger so you can build the scene yourself.
+`!gauntletaction` → Rolls a movement or action beat for the character during the Gauntlet.
+`!gauntletinjury` → Rolls an injury, setback, or consequence.
+`!gauntletoutcome` → Rolls the final result of the attempt.
+
+**Mat Challenges + Fights**
+`!activemats` → Shows active rider and infantry characters that are available for mat challenges or training matches.
+`!matpairs` → Randomly pairs active rider and infantry characters for training or sparring.
+`!fight name one,name two` or `!fight name one/name two` → Rolls one d20 for each name you type and declares the winner. This does not need stored character names. You can type any names you want.
+`!fullfight name one,name two` or `!fullfight name one/name two` → Rolls one d20 for each name, chooses the winner, and writes a short fight paragraph scene that includes the result.
+`!fightlog name` → Shows the saved fight history for that character, including wins, losses, draws, and recent opponents.
+`!masterboard` → Shows the stored fight records for active characters across the quadrants.
+
+**🎲 Dice Commands**
+`!roll d20` → Rolls dice using standard D&D style formatting such as `d20`, `2d6`, or `1d20+3`.
+`!d4` `!d6` `!d8` `!d10` `!d12` `!d20` `!d100` → Quick single-die roll commands when you just need a fast number.
+"""
+
     for chunk in split_long_message(help_text):
         await ctx.send(chunk)
+
 
 # -----------------------------
 # RUN BOT
