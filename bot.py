@@ -2411,8 +2411,17 @@ async def masterboard(ctx):
 async def rphelp(ctx):
     help_text = """**📖 Basgaith Command List**
 
-**🐉 Dragon Commands**
+**Creating A Character By Hand**
+> For Riders
 `!threshing` → Roll dragon color + tail
+`!assignrider name` → Assign a rider to a random open slot
+`!manualassign name | role | wing | section | squad` → Manually assign a rider
+`!removerider name` → Remove one rider
+`!reassignrider name` → Remove and reroll one rider
+`!riderslots` → Show filled rider slots
+
+
+** Interacting with your Dragon**
 `!dragonspeak` → Dragon approval or disapproval
 `!dragonaction` → Random dragon action
 
@@ -2442,13 +2451,6 @@ async def rphelp(ctx):
 `!scribe` → Roll for a subject specialty
 `!healer` → Roll for a healer discipline
 
-**🐉 Rider Formation**
-`!assignrider name` → Assign a rider to a random open slot
-`!manualassign name | role | wing | section | squad` → Manually assign a rider
-`!removerider name` → Remove one rider
-`!reassignrider name` → Remove and reroll one rider
-`!riderslots` → Show filled rider slots
-`!resetriders` → Reset rider formation
 
 **⚔️ Infantry Formation**
 `!assigninfantry name` → Assign infantry rank
