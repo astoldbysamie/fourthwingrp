@@ -49,7 +49,7 @@ FIGHT_FILE = "fight_records.json"
 # -----------------------------
 DEFAULT_RIDER_STRUCTURE = {
     "First Wing": {
-        "wingleader": "genevieve nguyen",
+        "wingleader": None,
         "executive_officer": None,
         "sections": {
             "Flame Section": {
@@ -135,7 +135,7 @@ DEFAULT_RIDER_STRUCTURE = {
                 "executive_officer": None,
                 "squads": {
                     "First Squad": {
-                        "squad_leader": "marina kalisa",
+                        "squad_leader": None,
                         "executive_squad_leader": None,
                         "cadets": []
                     }
