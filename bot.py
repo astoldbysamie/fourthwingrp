@@ -510,7 +510,6 @@ def create_character_profile(quadrant_choice: str | None = None) -> str:
         f"• **negative traits:** {negative_1}, {negative_2}",
         f"• **aesthetics:** {aesthetic_1}, {aesthetic_2}, {aesthetic_3}",
         "",
-        "***Chose One Of These:***",
         ""
     ]
 
@@ -2531,94 +2530,224 @@ async def masterboard(ctx):
         await ctx.send(chunk)
 
 
+@bot.command(name="allcharacters", aliases=["roster", "rpcast"])
+async def allcharacters(ctx, *, filter_term: str = None):
+    active = get_all_active_characters()
+
+    if not active:
+        await ctx.send("No active characters found.")
+        return
+
+    sorted_chars = sorted(
+        active.values(),
+        key=lambda x: (x["quadrant"], x["name"].lower())
+    )
+
+    valid_quadrants = {"riders", "infantry", "scribes", "healers"}
+
+    if filter_term and filter_term.lower().strip() == "simple":
+        lines = ["**All Active Characters**"]
+        current_quadrant = None
+
+        for info in sorted_chars:
+            quadrant = info["quadrant"].title()
+
+            if quadrant != current_quadrant:
+                current_quadrant = quadrant
+                lines.append(f"\n**{quadrant}**")
+
+            lines.append(f"• {info['name']}")
+
+        output = "\n".join(lines)
+        for chunk in split_long_message(output):
+            await ctx.send(chunk)
+        return
+
+    if filter_term:
+        filter_term = filter_term.lower().strip()
+
+        if filter_term in valid_quadrants:
+            filtered = [info for info in sorted_chars if info["quadrant"] == filter_term]
+
+            if not filtered:
+                await ctx.send(f"No active characters found in **{filter_term}**.")
+                return
+
+            lines = [f"**{filter_term.title()} Roster**"]
+            for info in filtered:
+                lines.append(f"• **{info['name']}** — {info['role']} | {info['assignment']}")
+
+            output = "\n".join(lines)
+            for chunk in split_long_message(output):
+                await ctx.send(chunk)
+            return
+
+    lines = ["**All Active Characters**"]
+    current_quadrant = None
+
+    for info in sorted_chars:
+        quadrant = info["quadrant"].title()
+
+        if quadrant != current_quadrant:
+            current_quadrant = quadrant
+            lines.append(f"\n**{quadrant}**")
+
+        lines.append(f"• **{info['name']}** — {info['role']} | {info['assignment']}")
+
+    output = "\n".join(lines)
+    for chunk in split_long_message(output):
+        await ctx.send(chunk)
+
+
+@bot.command(name="whois", aliases=["whereis", "lookupcharacter"])
+async def whois(ctx, *, name: str):
+    info = resolve_active_character(name)
+
+    if not info:
+        await ctx.send(f"Could not find an active assigned character named **{name}**.")
+        return
+
+    record = fight_records.get(normalize_name(info["name"]), {"wins": 0, "losses": 0, "draws": 0, "fights": []})
+
+    await ctx.send(
+        f"**Character Lookup: {info['name']}**\n"
+        f"Quadrant: **{info['quadrant'].title()}**\n"
+        f"Role: **{info['role']}**\n"
+        f"Assignment: **{info['assignment']}**\n"
+        f"Fight Record: **{record['wins']}-{record['losses']}-{record['draws']}**\n"
+        f"Total Fights: **{len(record['fights'])}**"
+    )
+
+
  # -----------------------------
 # HELP COMMAND
 # -----------------------------
+@bot.command(name="hardreset")
+@commands.has_permissions(administrator=True)
+async def hardreset(ctx):
+    global rider_data, infantry_data, scribe_data, healer_data, fight_records
+
+    rider_data = copy.deepcopy(DEFAULT_RIDER_STRUCTURE)
+    infantry_data = copy.deepcopy(DEFAULT_INFANTRY_STRUCTURE)
+    scribe_data = copy.deepcopy(DEFAULT_SCRIBE_STRUCTURE)
+    healer_data = copy.deepcopy(DEFAULT_HEALER_STRUCTURE)
+    fight_records.clear()
+
+    save_json_file(RIDER_FILE, rider_data)
+    save_json_file(INFANTRY_FILE, infantry_data)
+    save_json_file(SCRIBE_FILE, scribe_data)
+    save_json_file(HEALER_FILE, healer_data)
+    save_json_file(FIGHT_FILE, fight_records)
+
+    await ctx.send("🔥 **Hard reset complete.** All formations and fight records have been wiped.")
+
+
+@hardreset.error
+async def hardreset_error(ctx, error):
+    if isinstance(error, commands.MissingPermissions):
+        await ctx.send("You do not have permission to use this command.")
+
+
 @bot.command()
 async def rphelp(ctx):
-    help_text = (
-        "📖 BASGIATH COMMAND GUIDE\n\n"
+    help_text = """📖 **Codex Command Guide**
 
-        "🧭 Character Setup\n"
-        "!infantry → Roll your infantry specialty\n"
-        "!scribe → Roll your scribe focus\n"
-        "!healer → Roll your healer discipline\n"
-        "!threshing → Roll your dragon color + tail\n"
-        "!signet → Roll your signet ability\n"
-        "!createcharacter → Fully random character\n"
-        "!createcharacter riders/infantry/scribes/healers → Generate specific type\n"
-        "!character / !oc / !makecharacter → Aliases for character creation\n\n"
+`!rphelp` → Show this guide
 
-        "🐉 Dragon Interactions\n"
-        "!dragonspeak → Dragon approval or disapproval\n"
-        "!dragonaction → Random dragon behavior\n\n"
+**Character Creation**
+`!createcharacter` → Generate a fully random character
+`!createcharacter riders` → Generate a rider
+`!createcharacter infantry` → Generate an infantry cadet
+`!createcharacter scribes` → Generate a scribe
+`!createcharacter healers` → Generate a healer
+`!character` / `!oc` / `!makecharacter` → Character creation aliases
+`!charhelp` → Character generator help
 
-        "🪵 Gauntlet System\n"
-        "!gauntlet character name → Full gauntlet run for that character\n"
-        "!gauntlethazard → Next obstacle\n"
-        "!gauntletaction → Action moment\n"
-        "!gauntletinjury → Injury or consequence\n"
-        "!gauntletoutcome → Final result\n\n"
+**Quadrant Rolls**
+`!infantry` → Roll an infantry specialty
+`!scribe` → Roll a scribe specialty
+`!healer` → Roll a healer discipline
+`!threshing` → Roll dragon color + tail
+`!signet` → Manifest a signet
 
-        "🐉 Assignment (Auto)\n"
-        "!assignrider name → Auto assign rider position\n"
-        "!assigninfantry name → Auto assign infantry role\n"
-        "!assignscribe name → Auto assign scribe role\n"
-        "!assignhealer name → Auto assign healer role\n\n"
+**Dragon Commands**
+`!dragonspeak` → Dragon approval or disapproval
+`!dragonaction` → Random dragon action
 
-        "✍️ Assignment (Manual)\n"
-        "!manualassign name | role | wing | section | First Squad → Assign rider manually\n"
-        "!manualinfantry name | role | division → Assign infantry manually\n"
-        "!manualscribe name | role | order → Assign scribe manually\n"
-        "!manualhealer name | role | circle → Assign healer manually\n"
-        "⚠️ Rider manual assign ONLY uses 'First Squad'\n\n"
+**Rider Formation**
+`!assignrider name` → Auto assign a rider
+`!manualassign name | role | wing | section | squad` → Manually assign a rider
+`!removerider name` → Remove a rider
+`!reassignrider name` → Remove and reroll a rider
+`!riderslots` → View rider formation
+`!resetriders` → Reset rider formation
 
-        "🔄 Reassign / Remove\n"
-        "!removerider → Remove rider\n"
-        "!reassignrider → Remove + reroll rider\n"
-        "!removeinfantry / !reassigninfantry → Infantry control\n"
-        "!removescribe / !reassignscribe → Scribe control\n"
-        "!removehealer / !reassignhealer → Healer control\n\n"
+**Infantry Formation**
+`!assigninfantry name` → Auto assign infantry
+`!manualinfantry name | role | division` → Manually assign infantry
+`!removeinfantry name` → Remove infantry
+`!reassigninfantry name` → Remove and reroll infantry
+`!infantryslots` → View infantry formation
+`!resetinfantry` → Reset infantry formation
 
-        "📊 View Slots\n"
-        "!riderslots → View rider formation\n"
-        "!infantryslots → View infantry formation\n"
-        "!scribeslots → View scribe formation\n"
-        "!healerslots → View healer formation\n\n"
+**Scribe Formation**
+`!assignscribe name` → Auto assign a scribe
+`!manualscribe name | role | order` → Manually assign a scribe
+`!removescribe name` → Remove a scribe
+`!reassignscribe name` → Remove and reroll a scribe
+`!scribeslots` → View scribe formation
+`!resetscribes` → Reset scribe formation
 
-        "🧹 Reset\n"
-        "!resetriders → Reset rider formation\n"
-        "!resetinfantry → Reset infantry formation\n"
-        "!resetscribes → Reset scribe formation\n"
-        "!resethealers → Reset healer formation\n\n"
+**Healer Formation**
+`!assignhealer name` → Auto assign a healer
+`!manualhealer name | role | circle` → Manually assign a healer
+`!removehealer name` → Remove a healer
+`!reassignhealer name` → Remove and reroll a healer
+`!healerslots` → View healer formation
+`!resethealers` → Reset healer formation
 
-        "🥊 Mat System\n"
-        "!activemats → Show active fighters\n"
-        "!matpairs → Randomly pair fighters\n"
-        "!matchallenge / !mats → Aliases\n\n"
+**Gauntlet**
+`!gauntlet character name` → Full gauntlet scenario for that character
+`!gauntlethazard` → Random gauntlet obstacle
+`!gauntletaction character name` → Random gauntlet action for that character
+`!gauntletinjury` → Random gauntlet injury or consequence
+`!gauntletoutcome` → Random gauntlet outcome
 
-        "⚔️ Combat\n"
-        "!fight name1,name2 → Quick d20 fight\n"
-        "!fight name1/name2 → Alternate format\n"
-        "!fullfight name1,name2 → Full scene with winner\n\n"
+**Roster**
+`!allcharacters` → View every assigned character in the RP
+`!allcharacters simple` → View names only
+`!allcharacters riders` → View only riders
+`!allcharacters infantry` → View only infantry
+`!allcharacters scribes` → View only scribes
+`!allcharacters healers` → View only healers
+`!roster` / `!rpcast` → Roster aliases
+`!whois name` → Look up one assigned character
+`!whereis` / `!lookupcharacter` → Whois aliases
 
-        "📜 Fight Records\n"
-        "!fightlog name → View fight history\n"
-        "!fightrecord / !record / !fights → Aliases\n"
-        "!masterboard → Leaderboard\n\n"
+**Mat System**
+`!activemats` → Show active fighters
+`!matpairs` → Randomly pair fighters
+`!matchallenge` / `!mats` → Mat pairing aliases
 
-        "🧹 Fight History\n"
-        "!clearfights name → Clear one character's fights\n"
-        "!clearallfights → Clear ALL fights\n\n"
+**Combat + Records**
+`!fight name1, name2` → Quick fight
+`!fight name1/name2` → Quick fight alternate format
+`!fullfight name1, name2` → Full RP fight scene
+`!fightlog name` → View fight history
+`!fightrecord` / `!record` / `!fights` → Fight log aliases
+`!masterboard` → View all active fighters with records
+`!clearfights name` → Clear one character's fight history
+`!clearallfights` → Clear all fight history
 
-        "🎲 Dice\n"
-        "!roll → Custom dice (ex: 2d6, 1d20+3)\n"
-        "!d4 !d6 !d8 !d10 !d12 !d20 !d100 → Standard dice\n\n"
+**Dice**
+`!roll d20` → Standard roll
+`!roll 2d6+3` → Advanced roll
+`!d4` `!d6` `!d8` `!d10` `!d12` `!d20` `!d100` → Standard dice commands
 
-        "📖 Help\n"
-        "!charhelp → Character help\n"
-        "!rphelp → Show this guide\n"
-    )
+**Admin Reset**
+`!hardreset` → Reset all formations and all fight records (admin only)
+
+"""
 
     for chunk in split_long_message(help_text):
         await ctx.send(chunk)
