@@ -510,7 +510,6 @@ def create_character_profile(quadrant_choice: str | None = None) -> str:
         f"• **negative traits:** {negative_1}, {negative_2}",
         f"• **aesthetics:** {aesthetic_1}, {aesthetic_2}, {aesthetic_3}",
         "",
-        ""
     ]
 
     if quadrant == "riders":
@@ -2650,105 +2649,98 @@ async def hardreset_error(ctx, error):
 
 @bot.command()
 async def rphelp(ctx):
-    help_text = """📖 **Codex Command Guide**
+    help_text = """📖 **Basgiath Command Guide**
 
-`!rphelp` → Show this guide
+  "**Formations**\n\n"
 
-**Character Creation**
-`!createcharacter` → Generate a fully random character
-`!createcharacter riders` → Generate a rider
-`!createcharacter infantry` → Generate an infantry cadet
-`!createcharacter scribes` → Generate a scribe
-`!createcharacter healers` → Generate a healer
-`!character` / `!oc` / `!makecharacter` → Character creation aliases
-`!charhelp` → Character generator help
+        "**Riders**\n"
+        "`!assignrider name` : Assign Rider to a Wing \n"
+        "`!manualassign name | role | wing | section | First` : Manually assign rider.\n"s
+        "`!removerider name` : Remove rider\n"
+        "`!reassignrider name` : Reassign rider\n"
+        "`!riderslots` : View rider formation\n"
+        "`!resetriders` : Reset rider formation\n\n"
 
-**Quadrant Rolls**
-`!infantry` → Roll an infantry specialty
-`!scribe` → Roll a scribe specialty
-`!healer` → Roll a healer discipline
-`!threshing` → Roll dragon color + tail
-`!signet` → Manifest a signet
+        "**Infantry**\n"
+        "`!assigninfantry name` : Add to infantry\n"
+        "`!manualinfantry name | role | division` : Manually assign infantry\n"
+        "`!removeinfantry name` : Remove from infantry\n"
+        "`!reassigninfantry name` : Reassign infantry\n"
+        "`!infantryslots` : View infantry formation\n"
+        "`!resetinfantry` : Reset infantry formation\n\n"
 
-**Dragon Commands**
-`!dragonspeak` → Dragon approval or disapproval
-`!dragonaction` → Random dragon action
+        "**Scribes**\n"
+        "`!assignscribe name` : Add to scribes\n"
+        "`!manualscribe name | role | order` : Manually assign scribe\n"
+        "`!removescribe name` : Remove from scribes\n"
+        "`!reassignscribe name` : Reassign scribe\n"
+        "`!scribeslots` : View scribe formation\n"
+        "`!resetscribes` : Reset scribe formation\n\n"
 
-**Rider Formation**
-`!assignrider name` → Auto assign a rider
-`!manualassign name | role | wing | section | squad` → Manually assign a rider
-`!removerider name` → Remove a rider
-`!reassignrider name` → Remove and reroll a rider
-`!riderslots` → View rider formation
-`!resetriders` → Reset rider formation
+        "**Healers**\n"
+        "`!assignhealer name` : Add to healers\n"
+        "`!manualhealer name | role | circle` : Manually assign healer\n"
+        "`!removehealer name` : Remove from healers\n"
+        "`!reassignhealer name` : Reassign healer\n"
+        "`!healerslots` : View healer formation\n"
+        "`!resethealers` : Reset healer formation\n\n"
 
-**Infantry Formation**
-`!assigninfantry name` → Auto assign infantry
-`!manualinfantry name | role | division` → Manually assign infantry
-`!removeinfantry name` → Remove infantry
-`!reassigninfantry name` → Remove and reroll infantry
-`!infantryslots` → View infantry formation
-`!resetinfantry` → Reset infantry formation
+        "**Roster + Lookup**\n"
+        "`!allcharacters` : View all characters\n"
+        "`!roster` : View all characters\n"
+        "`!rpcast` : View all characters\n"
+        "`!allcharacters simple` : Names only\n"
+        "`!allcharacters riders` : Riders only\n"
+        "`!allcharacters infantry` : Infantry only\n"
+        "`!allcharacters scribes` : Scribes only\n"
+        "`!allcharacters healers` : Healers only\n"
+        "`!whois character name` : View character details\n"
+        "`!whereis character name` : View character details\n"
+        "`!lookupcharacter character name` : View character details\n\n"
 
-**Scribe Formation**
-`!assignscribe name` → Auto assign a scribe
-`!manualscribe name | role | order` → Manually assign a scribe
-`!removescribe name` → Remove a scribe
-`!reassignscribe name` → Remove and reroll a scribe
-`!scribeslots` → View scribe formation
-`!resetscribes` → Reset scribe formation
+        "**Combat + Tracking**\n"
+        "`!fight name1, name2` : Roll a fight\n"
+        "`!fullfight name1, name2` : RP fight scene\n"
+        "`!fightlog name` : View fight history\n"
+        "`!fightrecord name` : View fight history\n"
+        "`!record name` : View fight history\n"
+        "`!fights name` : View fight history\n"
+        "`!masterboard` : View all fighters\n"
+        "`!clearfights name` : Clear one record\n"
+        "`!clearallfights` : Clear all records\n\n"
 
-**Healer Formation**
-`!assignhealer name` → Auto assign a healer
-`!manualhealer name | role | circle` → Manually assign a healer
-`!removehealer name` → Remove a healer
-`!reassignhealer name` → Remove and reroll a healer
-`!healerslots` → View healer formation
-`!resethealers` → Reset healer formation
+        "**Gauntlet**\n"
+        "`!gauntlet character name` : Run gauntlet\n"
+        "`!gauntletaction character name` : Quick gauntlet action\n\n"
 
-**Gauntlet**
-`!gauntlet character name` → Full gauntlet scenario for that character
-`!gauntlethazard` → Random gauntlet obstacle
-`!gauntletaction character name` → Random gauntlet action for that character
-`!gauntletinjury` → Random gauntlet injury or consequence
-`!gauntletoutcome` → Random gauntlet outcome
+        "**Randomizing Commands**\n"
+        "`!createcharacter` : Randomize character\n"
+        "`!character` : Randomize character\n"
+        "`!oc` : Randomize character\n"
+        "`!makecharacter` : Randomize character\n"
+        "`!createcharacter riders` : Randomize rider\n"
+        "`!createcharacter infantry` : Randomize infantry\n"
+        "`!createcharacter scribes` : Randomize scribe\n"
+        "`!createcharacter healers` : Randomize healer\n"
+        "`!charhelp` : Character generator help\n"
+        "`!threshing` : Random dragon color + tail\n"
+        "`!signet` : Random signet\n"
+        "`!dragonspeak` : Random dragon reaction\n"
+        "`!dragonaction` : Random dragon action\n"
+        "`!infantry` : Random infantry specialty\n"
+        "`!scribe` : Random scribe specialty\n"
+        "`!healer` : Random healer discipline\n\n"
 
-**Roster**
-`!allcharacters` → View every assigned character in the RP
-`!allcharacters simple` → View names only
-`!allcharacters riders` → View only riders
-`!allcharacters infantry` → View only infantry
-`!allcharacters scribes` → View only scribes
-`!allcharacters healers` → View only healers
-`!roster` / `!rpcast` → Roster aliases
-`!whois name` → Look up one assigned character
-`!whereis` / `!lookupcharacter` → Whois aliases
+        "**Dice**\n"
+        "`!roll d20` : Roll dice\n"
+        "`!roll 2d6+3` : Advanced roll\n"
+        "`!d4` `!d6` `!d8` `!d10` `!d12` `!d20` `!d100`\n\n"
 
-**Mat System**
-`!activemats` → Show active fighters
-`!matpairs` → Randomly pair fighters
-`!matchallenge` / `!mats` → Mat pairing aliases
+        "**Admin**\n"
+        "`!hardreset` : Reset EVERYTHING (admin only)\n\n"
 
-**Combat + Records**
-`!fight name1, name2` → Quick fight
-`!fight name1/name2` → Quick fight alternate format
-`!fullfight name1, name2` → Full RP fight scene
-`!fightlog name` → View fight history
-`!fightrecord` / `!record` / `!fights` → Fight log aliases
-`!masterboard` → View all active fighters with records
-`!clearfights name` → Clear one character's fight history
-`!clearallfights` → Clear all fight history
-
-**Dice**
-`!roll d20` → Standard roll
-`!roll 2d6+3` → Advanced roll
-`!d4` `!d6` `!d8` `!d10` `!d12` `!d20` `!d100` → Standard dice commands
-
-**Admin Reset**
-`!hardreset` → Reset all formations and all fight records (admin only)
-
-"""
-
+        "**Other**\n"
+        "Mention the bot : Random in-character response\n\n"
     for chunk in split_long_message(help_text):
         await ctx.send(chunk)
 
