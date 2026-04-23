@@ -2322,7 +2322,11 @@ def make_mat_pairs(names):
 
 
 @bot.command()
-async def gauntlet(ctx):
+async def gauntlet(ctx, *, name: str = None):
+    if not name:
+        await ctx.send("Use: `!gauntlet character name`")
+        return
+
     obstacle = random.choice(GAUNTLET_OBSTACLES)
     approach = random.choice(GAUNTLET_APPROACHES)
     complication = random.choice(GAUNTLET_COMPLICATIONS)
@@ -2332,7 +2336,7 @@ async def gauntlet(ctx):
     await ctx.send(
         f"**The Gauntlet**\n"
         f"Obstacle: **{obstacle}**\n"
-        f"Approach: **{ctx.author.display_name}** {approach}.\n"
+        f"Approach: **{name}** {approach}.\n"
         f"Complication: **{complication}**\n"
         f"Outcome: **{outcome}**\n"
         f"{flavor}"
@@ -2550,7 +2554,7 @@ async def rphelp(ctx):
         "!dragonaction → Random dragon behavior\n\n"
 
         "🪵 Gauntlet System\n"
-        "!gauntlet → Full gauntlet run (scene + result)\n"
+        "!gauntlet character name → Full gauntlet run for that character\n"
         "!gauntlethazard → Next obstacle\n"
         "!gauntletaction → Action moment\n"
         "!gauntletinjury → Injury or consequence\n"
