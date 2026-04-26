@@ -2619,7 +2619,7 @@ async def whois(ctx, *, name: str):
 
 
  # -----------------------------
-# HELP COMMAND
+# HELP COMMANDS / ADMIN
 # -----------------------------
 @bot.command(name="hardreset")
 @commands.has_permissions(administrator=True)
@@ -2647,15 +2647,16 @@ async def hardreset_error(ctx, error):
         await ctx.send("You do not have permission to use this command.")
 
 
-@bot.command()
+@bot.command(name="rphelp")
 async def rphelp(ctx):
-    help_text = """📖 **Basgiath Command Guide**
+    help_text = (
+        "📖 **Basgiath Command Guide**\n\n"
 
-  "**Formations**\n\n"
+        "**Formations**\n\n"
 
         "**Riders**\n"
-        "`!assignrider name` : Assign Rider to a Wing \n"
-        "`!manualassign name | role | wing | section | First` : Manually assign rider.\n"s
+        "`!assignrider name` : Add a rider\n"
+        "`!manualassign name | role | wing | section | squad` : Manually assign rider\n"
         "`!removerider name` : Remove rider\n"
         "`!reassignrider name` : Reassign rider\n"
         "`!riderslots` : View rider formation\n"
@@ -2700,6 +2701,7 @@ async def rphelp(ctx):
 
         "**Combat + Tracking**\n"
         "`!fight name1, name2` : Roll a fight\n"
+        "`!fight name1/name2` : Alternate fight format\n"
         "`!fullfight name1, name2` : RP fight scene\n"
         "`!fightlog name` : View fight history\n"
         "`!fightrecord name` : View fight history\n"
@@ -2709,9 +2711,18 @@ async def rphelp(ctx):
         "`!clearfights name` : Clear one record\n"
         "`!clearallfights` : Clear all records\n\n"
 
+        "**Mat System**\n"
+        "`!activemats` : Show active rider and infantry fighters\n"
+        "`!matpairs` : Randomly pair fighters\n"
+        "`!matchallenge` : Randomly pair fighters\n"
+        "`!mats` : Randomly pair fighters\n\n"
+
         "**Gauntlet**\n"
         "`!gauntlet character name` : Run gauntlet\n"
-        "`!gauntletaction character name` : Quick gauntlet action\n\n"
+        "`!gauntlethazard` : Generate next gauntlet obstacle\n"
+        "`!gauntletaction character name` : Quick gauntlet action\n"
+        "`!gauntletinjury` : Random gauntlet injury/consequence\n"
+        "`!gauntletoutcome` : Random gauntlet outcome\n\n"
 
         "**Randomizing Commands**\n"
         "`!createcharacter` : Randomize character\n"
@@ -2734,13 +2745,22 @@ async def rphelp(ctx):
         "**Dice**\n"
         "`!roll d20` : Roll dice\n"
         "`!roll 2d6+3` : Advanced roll\n"
-        "`!d4` `!d6` `!d8` `!d10` `!d12` `!d20` `!d100`\n\n"
+        "`!d4` : Roll d4\n"
+        "`!d6` : Roll d6\n"
+        "`!d8` : Roll d8\n"
+        "`!d10` : Roll d10\n"
+        "`!d12` : Roll d12\n"
+        "`!d20` : Roll d20\n"
+        "`!d100` : Roll d100\n\n"
 
         "**Admin**\n"
         "`!hardreset` : Reset EVERYTHING (admin only)\n\n"
 
         "**Other**\n"
         "Mention the bot : Random in-character response\n\n"
+        "Use character names for most commands."
+    )
+
     for chunk in split_long_message(help_text):
         await ctx.send(chunk)
 
