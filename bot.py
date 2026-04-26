@@ -34,7 +34,7 @@ intents.members = True
 # -----------------------------
 # BOT SETUP
 # -----------------------------
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = commands.Bot(command_prefix=commands.when_mentioned, intents=intents)
 
 # -----------------------------
 # FILES
@@ -2198,92 +2198,92 @@ async def slash_clearallfights(interaction: discord.Interaction):
 # HELP + ADMIN
 # -----------------------------
 def build_slash_help_text():
-    return (
-        📖 **Basgiath Command Guide**
+    help_text = (
+        "📖 **Basgiath Slash Command Guide**\n\n"
 
-━━━━━━━━━━━━━━━━━━━
-🎲 **DICE + RANDOM ROLLS**
-━━━━━━━━━━━━━━━━━━━
-`/roll` → Roll any standard dice combo
-`/d4` → Roll a d4
-`/d6` → Roll a d6
-`/d8` → Roll a d8
-`/d10` → Roll a d10
-`/d12` → Roll a d12
-`/d20` → Roll a d20
-`/d100` → Roll a d100
+        "**Formations**\n\n"
 
-━━━━━━━━━━━━━━━━━━━
-🐉 **RIDERS**
-━━━━━━━━━━━━━━━━━━━
-`/threshing` → Random dragon color + tail
-`/signet` → Random signet manifestation
-`/dragonspeak` → Random dragon approval/disapproval
-`/dragonaction` → Random dragon action
+        "**Riders**\n"
+        "`/assignrider name` : Add a rider\n"
+        "`/manualassign name role wing section squad` : Manually assign rider with dropdowns\n"
+        "`/removerider name` : Remove rider\n"
+        "`/reassignrider name` : Reassign rider\n"
+        "`/riderslots` : View rider formation\n"
+        "`/resetriders` : Reset rider formation\n\n"
 
-`/assignrider` → Randomly assign a rider
-`/manualassign` → Manually assign a rider with dropdowns
-`/removerider` → Remove a rider from formation
-`/reassignrider` → Randomly reassign a rider
-`/riderslots` → Show taken rider slots
-`/resetriders` → Reset all rider assignments
+        "**Infantry**\n"
+        "`/assigninfantry name` : Add to infantry\n"
+        "`/manualinfantry name role division` : Manually assign infantry with dropdowns\n"
+        "`/removeinfantry name` : Remove from infantry\n"
+        "`/reassigninfantry name` : Reassign infantry\n"
+        "`/infantryslots` : View infantry formation\n"
+        "`/resetinfantry` : Reset infantry formation\n\n"
 
-━━━━━━━━━━━━━━━━━━━
-⚔️ **INFANTRY**
-━━━━━━━━━━━━━━━━━━━
-`/infantry` → Random infantry specialty
-`/assigninfantry` → Randomly assign infantry
-`/manualinfantry` → Manually assign infantry with dropdowns
-`/removeinfantry` → Remove infantry from formation
-`/reassigninfantry` → Randomly reassign infantry
-`/infantryslots` → Show taken infantry slots
-`/resetinfantry` → Reset infantry assignments
+        "**Scribes**\n"
+        "`/assignscribe name` : Add to scribes\n"
+        "`/manualscribe name role order` : Manually assign scribe with dropdowns\n"
+        "`/removescribe name` : Remove from scribes\n"
+        "`/reassignscribe name` : Reassign scribe\n"
+        "`/scribeslots` : View scribe formation\n"
+        "`/resetscribes` : Reset scribe formation\n\n"
 
-━━━━━━━━━━━━━━━━━━━
-📚 **SCRIBES**
-━━━━━━━━━━━━━━━━━━━
-`/scribe` → Random scribe specialty
-`/assignscribe` → Randomly assign scribe
-`/manualscribe` → Manually assign scribe with dropdowns
-`/removescribe` → Remove scribe from formation
-`/reassignscribe` → Randomly reassign scribe
-`/scribeslots` → Show taken scribe slots
-`/resetscribes` → Reset scribe assignments
+        "**Healers**\n"
+        "`/assignhealer name` : Add to healers\n"
+        "`/manualhealer name role circle` : Manually assign healer with dropdowns\n"
+        "`/removehealer name` : Remove from healers\n"
+        "`/reassignhealer name` : Reassign healer\n"
+        "`/healerslots` : View healer formation\n"
+        "`/resethealers` : Reset healer formation\n\n"
 
-━━━━━━━━━━━━━━━━━━━
-🌿 **HEALERS**
-━━━━━━━━━━━━━━━━━━━
-`/healer` → Random healer discipline
-`/assignhealer` → Randomly assign healer
-`/manualhealer` → Manually assign healer with dropdowns
-`/removehealer` → Remove healer from formation
-`/reassignhealer` → Randomly reassign healer
-`/healerslots` → Show taken healer slots
-`/resethealers` → Reset healer assignments
+        "**Roster + Lookup**\n"
+        "`/roster filter` : View all characters, names only, or one quadrant\n"
+        "`/whois name` : View character details\n\n"
 
-━━━━━━━━━━━━━━━━━━━
-🧍 **CHARACTERS**
-━━━━━━━━━━━━━━━━━━━
-`/createcharacter` → Randomize a character
-Choose: Any, Riders, Infantry, Scribes, or Healers
+        "**Combat + Tracking**\n"
+        "`/fight name_one name_two` : Roll a fight\n"
+        "`/fullfight name_one name_two` : RP fight scene\n"
+        "`/fightlog name` : View fight history\n"
+        "`/masterboard` : View all fighters\n"
+        "`/clearfights name` : Clear one record\n"
+        "`/clearallfights` : Clear all records\n\n"
 
-━━━━━━━━━━━━━━━━━━━
-🥊 **FIGHTS**
-━━━━━━━━━━━━━━━━━━━
-`/fight` → Roll a fight between two characters
-`/fightlog` → Show one character’s fight record
-`/masterboard` → Show all active characters and fight records
-`/clearfights` → Clear one character’s fight history
-`/clearallfights` → Clear every fight record
-    
+        "**Mat System**\n"
+        "`/activemats` : Show active rider and infantry fighters\n"
+        "`/matpairs` : Randomly pair fighters\n\n"
+
+        "**Gauntlet**\n"
+        "`/gauntlet name` : Run gauntlet\n"
+        "`/gauntlethazard` : Generate next gauntlet obstacle\n"
+        "`/gauntletaction name` : Quick gauntlet action\n"
+        "`/gauntletinjury` : Random gauntlet injury/consequence\n"
+        "`/gauntletoutcome` : Random gauntlet outcome\n\n"
+
+        "**Randomizing Commands**\n"
+        "`/createcharacter quadrant` : Randomize character with quadrant dropdown\n"
+        "`/random kind` : Pick a randomizer from a dropdown\n"
+        "`/threshing` : Random dragon color + tail\n"
+        "`/signet` : Random signet\n"
+        "`/dragonspeak` : Random dragon reaction\n"
+        "`/dragonaction` : Random dragon action\n"
+        "`/infantry` : Random infantry specialty\n"
+        "`/scribe` : Random scribe specialty\n"
+        "`/healer` : Random healer discipline\n\n"
+
+        "**Dice**\n"
+        "`/roll dice` : Roll dice, like d20 or 2d6+3\n"
+        "`/die die` : Roll one die from a dropdown\n\n"
+
+        "**Admin**\n"
+        "`/hardreset` : Reset EVERYTHING (admin only)\n\n"
+
+        "**Other**\n"
+        "Mention the bot : Random in-character response\n\n"
+        "Use character names for most commands. Anything with set options uses dropdowns."
     )
+    return help_text
 
 @bot.tree.command(name="help", description="Show the Basgiath command guide")
 async def slash_help(interaction: discord.Interaction):
-    await send_chunks_interaction(interaction, build_slash_help_text(), ephemeral=True)
-
-@bot.tree.command(name="rphelp", description="Show the Basgiath command guide")
-async def slash_rphelp(interaction: discord.Interaction):
     await send_chunks_interaction(interaction, build_slash_help_text(), ephemeral=True)
 
 @bot.tree.command(name="hardreset", description="Reset everything: formations and fight records")
