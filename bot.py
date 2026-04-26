@@ -1610,6 +1610,75 @@ async def send_chunks_interaction(interaction: discord.Interaction, text: str, e
         await interaction.followup.send(chunk, ephemeral=ephemeral)
 
 # -----------------------------
+# FORMATION LORE + SPECIALTY HELPERS
+# -----------------------------
+INFANTRY_ASSIGNMENT_LORE = {
+    "First Division": {"label": "Frontline", "specialties": ["Vanguard", "Bastion"]},
+    "Second Division": {"label": "Mobility", "specialties": ["Skirmisher", "Ranger"]},
+    "Third Division": {"label": "Force", "specialties": ["Breaker"]},
+    "Fourth Division": {"label": "Command", "specialties": ["Tactician"]},
+}
+
+SCRIBE_ASSIGNMENT_LORE = {
+    "First Order": {"label": "Records", "specialties": ["Archive", "Chronicle"]},
+    "Second Order": {"label": "Lexicon", "specialties": ["Lexicon"]},
+    "Third Order": {"label": "Intelligence", "specialties": ["Intelligence", "Ciphers and Decoding"]},
+    "Fourth Order": {"label": "Restricted", "specialties": ["Restricted"]},
+}
+
+HEALER_ASSIGNMENT_LORE = {
+    "First Circle": {"label": "Field Operations", "specialties": ["Battlefield", "Emergency"]},
+    "Second Circle": {"label": "Precision", "specialties": ["Surgical", "Recovery"]},
+    "Third Circle": {"label": "Experimental", "specialties": ["Experimental"]},
+    "Fourth Circle": {"label": "Dragonkin", "specialties": ["Dragonkind"]},
+}
+
+def format_specialty_options(options: list[str]) -> str:
+    if len(options) == 1:
+        return options[0]
+    return ", ".join(options[:-1]) + " or " + options[-1]
+
+def choose_specialty_for_group(group_name: str, lore_map: dict) -> str | None:
+    info = lore_map.get(group_name)
+    if not info:
+        return None
+    return random.choice(info["specialties"])
+
+def format_lore_line(group_name: str, lore_map: dict) -> str:
+    info = lore_map.get(group_name)
+    if not info:
+        return group_name
+    return f"{group_name}. {info['label']}. Specialty: {format_specialty_options(info['specialties'])}"
+
+def build_lore_reference(title: str, lore_map: dict) -> str:
+    lines = [f"**{title}**"]
+    for group_name in lore_map:
+        lines.append(format_lore_line(group_name, lore_map))
+    return "\n".join(lines)
+
+def format_simple_assignment_with_lore(name: str, slot, lore_map: dict, group_label: str) -> str:
+    role, group_name = slot
+    if group_name == "_chain":
+        return f"**{name}** assigned as **{role}** in **High Chain**."
+    info = lore_map.get(group_name, {"label": group_label, "specialties": []})
+    specialty = choose_specialty_for_group(group_name, lore_map)
+    specialty_line = f"\nSpecialty Assigned: **{specialty}**" if specialty else ""
+    option_text = format_specialty_options(info["specialties"]) if info.get("specialties") else "N/A"
+    return (
+        f"**{name}** assigned as **{role}** in **{group_name}**.\n"
+        f"{group_name}. {info['label']}. Specialty: {option_text}"
+        f"{specialty_line}"
+    )
+
+def formation_lore_reference_text() -> str:
+    return (
+        build_lore_reference("Healers", HEALER_ASSIGNMENT_LORE)
+        + "\n\n"
+        + build_lore_reference("Scribes", SCRIBE_ASSIGNMENT_LORE)
+        + "\n\n"
+        + build_lore_reference("Infantry", INFANTRY_ASSIGNMENT_LORE)
+    )
+# -----------------------------
 # SLASH COMMANDS: RANDOM + DICE
 # -----------------------------
 @bot.tree.command(name="threshing", description="Random dragon color and tail")
@@ -1875,7 +1944,7 @@ async def slash_assigninfantry(interaction: discord.Interaction, name: str):
     slot = random.choice(slots)
     assign_simple_slot(infantry_data, name, slot, "Cadet", "Cadets")
     save_json_file(INFANTRY_FILE, infantry_data)
-    await interaction.response.send_message(format_hidden_assignment(name, slot))
+    await interaction.response.send_message(format_simple_assignment_with_lore(name, slot, INFANTRY_ASSIGNMENT_LORE, "Division"))
 
 @bot.tree.command(name="manualinfantry", description="Manually assign infantry with dropdowns")
 @app_commands.choices(role=INFANTRY_ROLE_CHOICES, division=DIVISION_CHOICES)
@@ -1916,7 +1985,7 @@ async def slash_reassigninfantry(interaction: discord.Interaction, name: str):
     slot = random.choice(slots)
     assign_simple_slot(infantry_data, name, slot, "Cadet", "Cadets")
     save_json_file(INFANTRY_FILE, infantry_data)
-    await interaction.response.send_message(f"{removed}\n{format_hidden_assignment(name, slot)}")
+    await interaction.response.send_message(removed + "\n" + format_simple_assignment_with_lore(name, slot, INFANTRY_ASSIGNMENT_LORE, "Division"))
 
 @bot.tree.command(name="infantryslots", description="View infantry formation")
 async def slash_infantryslots(interaction: discord.Interaction):
@@ -1944,7 +2013,7 @@ async def slash_assignscribe(interaction: discord.Interaction, name: str):
     slot = random.choice(slots)
     assign_simple_slot(scribe_data, name, slot, "Scribe", "Scribes")
     save_json_file(SCRIBE_FILE, scribe_data)
-    await interaction.response.send_message(format_hidden_assignment(name, slot))
+    await interaction.response.send_message(format_simple_assignment_with_lore(name, slot, SCRIBE_ASSIGNMENT_LORE, "Order"))
 
 @bot.tree.command(name="manualscribe", description="Manually assign scribe with dropdowns")
 @app_commands.choices(role=SCRIBE_ROLE_CHOICES, order=ORDER_CHOICES)
@@ -1985,7 +2054,7 @@ async def slash_reassignscribe(interaction: discord.Interaction, name: str):
     slot = random.choice(slots)
     assign_simple_slot(scribe_data, name, slot, "Scribe", "Scribes")
     save_json_file(SCRIBE_FILE, scribe_data)
-    await interaction.response.send_message(f"{removed}\n{format_hidden_assignment(name, slot)}")
+    await interaction.response.send_message(removed + "\n" + format_simple_assignment_with_lore(name, slot, SCRIBE_ASSIGNMENT_LORE, "Order"))
 
 @bot.tree.command(name="scribeslots", description="View scribe formation")
 async def slash_scribeslots(interaction: discord.Interaction):
@@ -2012,7 +2081,7 @@ async def slash_assignhealer(interaction: discord.Interaction, name: str):
     slot = random.choice(slots)
     assign_simple_slot(healer_data, name, slot, "Trainee", "Trainees")
     save_json_file(HEALER_FILE, healer_data)
-    await interaction.response.send_message(format_hidden_assignment(name, slot))
+    await interaction.response.send_message(format_simple_assignment_with_lore(name, slot, HEALER_ASSIGNMENT_LORE, "Circle"))
 
 @bot.tree.command(name="manualhealer", description="Manually assign healer with dropdowns")
 @app_commands.choices(role=HEALER_ROLE_CHOICES, circle=CIRCLE_CHOICES)
@@ -2053,7 +2122,7 @@ async def slash_reassignhealer(interaction: discord.Interaction, name: str):
     slot = random.choice(slots)
     assign_simple_slot(healer_data, name, slot, "Trainee", "Trainees")
     save_json_file(HEALER_FILE, healer_data)
-    await interaction.response.send_message(f"{removed}\n{format_hidden_assignment(name, slot)}")
+    await interaction.response.send_message(removed + "\n" + format_simple_assignment_with_lore(name, slot, HEALER_ASSIGNMENT_LORE, "Circle"))
 
 @bot.tree.command(name="healerslots", description="View healer formation")
 async def slash_healerslots(interaction: discord.Interaction):
@@ -2365,101 +2434,83 @@ class CharacterRandomizeView(discord.ui.View):
         await self.randomize(interaction, "healers")
 
 
-class RidersPanelView(discord.ui.View):
+class ManualAssignCharactersView(discord.ui.View):
     def __init__(self): super().__init__(timeout=240)
-    @discord.ui.button(label="Add Rider", style=discord.ButtonStyle.primary)
-    async def add(self, interaction, button): await interaction.response.send_modal(NameModal("Add Rider", "Character name", slash_assignrider))
-    @discord.ui.button(label="Manual Assign", style=discord.ButtonStyle.primary)
-    async def manual(self, interaction, button): await interaction.response.send_message("**Manual Assign: Rider**", view=ManualAssignView("rider"), ephemeral=True)
-    @discord.ui.button(label="Remove Rider", style=discord.ButtonStyle.secondary)
-    async def remove(self, interaction, button): await interaction.response.send_modal(NameModal("Remove Rider", "Character name", slash_removerider))
-    @discord.ui.button(label="Reassign Rider", style=discord.ButtonStyle.secondary)
-    async def reassign(self, interaction, button): await interaction.response.send_modal(NameModal("Reassign Rider", "Character name", slash_reassignrider))
-    @discord.ui.button(label="View Rider Formation", style=discord.ButtonStyle.secondary)
-    async def slots(self, interaction, button): await slash_riderslots(interaction)
-    @discord.ui.button(label="Reset Riders", style=discord.ButtonStyle.danger)
-    async def reset(self, interaction, button): await interaction.response.send_message("Reset rider formation?", view=ConfirmResetView("Riders", slash_resetriders), ephemeral=True)
+    @discord.ui.button(label="Manual Rider", style=discord.ButtonStyle.primary, row=0)
+    async def rider(self, interaction, button): await interaction.response.send_message("**Manual Assign: Rider**\n`/manualassign name role wing section squad`", view=ManualAssignView("rider"), ephemeral=True)
+    @discord.ui.button(label="Manual Infantry", style=discord.ButtonStyle.primary, row=0)
+    async def infantry(self, interaction, button): await interaction.response.send_message("**Manual Assign: Infantry**\n`/manualinfantry name role division`", view=ManualAssignView("infantry"), ephemeral=True)
+    @discord.ui.button(label="Manual Scribe", style=discord.ButtonStyle.primary, row=1)
+    async def scribe(self, interaction, button): await interaction.response.send_message("**Manual Assign: Scribe**\n`/manualscribe name role order`", view=ManualAssignView("scribe"), ephemeral=True)
+    @discord.ui.button(label="Manual Healer", style=discord.ButtonStyle.primary, row=1)
+    async def healer(self, interaction, button): await interaction.response.send_message("**Manual Assign: Healer**\n`/manualhealer name role circle`", view=ManualAssignView("healer"), ephemeral=True)
 
 
-class InfantryPanelView(discord.ui.View):
+class AssignFormationRolesView(discord.ui.View):
     def __init__(self): super().__init__(timeout=240)
-    @discord.ui.button(label="Add Infantry", style=discord.ButtonStyle.primary)
-    async def add(self, interaction, button): await interaction.response.send_modal(NameModal("Add Infantry", "Character name", slash_assigninfantry))
-    @discord.ui.button(label="Manual Assign", style=discord.ButtonStyle.primary)
-    async def manual(self, interaction, button): await interaction.response.send_message("**Manual Assign: Infantry**", view=ManualAssignView("infantry"), ephemeral=True)
-    @discord.ui.button(label="Remove Infantry", style=discord.ButtonStyle.secondary)
-    async def remove(self, interaction, button): await interaction.response.send_modal(NameModal("Remove Infantry", "Character name", slash_removeinfantry))
-    @discord.ui.button(label="Reassign Infantry", style=discord.ButtonStyle.secondary)
-    async def reassign(self, interaction, button): await interaction.response.send_modal(NameModal("Reassign Infantry", "Character name", slash_reassigninfantry))
-    @discord.ui.button(label="View Infantry Formation", style=discord.ButtonStyle.secondary)
-    async def slots(self, interaction, button): await slash_infantryslots(interaction)
-    @discord.ui.button(label="Reset Infantry", style=discord.ButtonStyle.danger)
-    async def reset(self, interaction, button): await interaction.response.send_message("Reset infantry formation?", view=ConfirmResetView("Infantry", slash_resetinfantry), ephemeral=True)
+    @discord.ui.button(label="Assign Rider", style=discord.ButtonStyle.primary, row=0)
+    async def rider(self, interaction, button): await interaction.response.send_modal(NameModal("Assign Rider", "Character name", slash_assignrider))
+    @discord.ui.button(label="Assign Infantry", style=discord.ButtonStyle.primary, row=0)
+    async def infantry(self, interaction, button): await interaction.response.send_modal(NameModal("Assign Infantry", "Character name", slash_assigninfantry))
+    @discord.ui.button(label="Assign Scribe", style=discord.ButtonStyle.primary, row=1)
+    async def scribe(self, interaction, button): await interaction.response.send_modal(NameModal("Assign Scribe", "Character name", slash_assignscribe))
+    @discord.ui.button(label="Assign Healer", style=discord.ButtonStyle.primary, row=1)
+    async def healer(self, interaction, button): await interaction.response.send_modal(NameModal("Assign Healer", "Character name", slash_assignhealer))
+    @discord.ui.button(label="Show Specialty Guide", style=discord.ButtonStyle.secondary, row=2)
+    async def guide(self, interaction, button): await send_chunks_interaction(interaction, formation_lore_reference_text(), ephemeral=True)
 
 
-class ScribesPanelView(discord.ui.View):
+class ReassignCharactersView(discord.ui.View):
     def __init__(self): super().__init__(timeout=240)
-    @discord.ui.button(label="Add Scribe", style=discord.ButtonStyle.primary)
-    async def add(self, interaction, button): await interaction.response.send_modal(NameModal("Add Scribe", "Character name", slash_assignscribe))
-    @discord.ui.button(label="Manual Assign", style=discord.ButtonStyle.primary)
-    async def manual(self, interaction, button): await interaction.response.send_message("**Manual Assign: Scribe**", view=ManualAssignView("scribe"), ephemeral=True)
-    @discord.ui.button(label="Remove Scribe", style=discord.ButtonStyle.secondary)
-    async def remove(self, interaction, button): await interaction.response.send_modal(NameModal("Remove Scribe", "Character name", slash_removescribe))
-    @discord.ui.button(label="Reassign Scribe", style=discord.ButtonStyle.secondary)
-    async def reassign(self, interaction, button): await interaction.response.send_modal(NameModal("Reassign Scribe", "Character name", slash_reassignscribe))
-    @discord.ui.button(label="View Scribe Formation", style=discord.ButtonStyle.secondary)
-    async def slots(self, interaction, button): await slash_scribeslots(interaction)
-    @discord.ui.button(label="Reset Scribes", style=discord.ButtonStyle.danger)
-    async def reset(self, interaction, button): await interaction.response.send_message("Reset scribe formation?", view=ConfirmResetView("Scribes", slash_resetscribes), ephemeral=True)
+    @discord.ui.button(label="Reassign Rider", style=discord.ButtonStyle.secondary, row=0)
+    async def rider(self, interaction, button): await interaction.response.send_modal(NameModal("Reassign Rider", "Character name", slash_reassignrider))
+    @discord.ui.button(label="Reassign Infantry", style=discord.ButtonStyle.secondary, row=0)
+    async def infantry(self, interaction, button): await interaction.response.send_modal(NameModal("Reassign Infantry", "Character name", slash_reassigninfantry))
+    @discord.ui.button(label="Reassign Scribe", style=discord.ButtonStyle.secondary, row=1)
+    async def scribe(self, interaction, button): await interaction.response.send_modal(NameModal("Reassign Scribe", "Character name", slash_reassignscribe))
+    @discord.ui.button(label="Reassign Healer", style=discord.ButtonStyle.secondary, row=1)
+    async def healer(self, interaction, button): await interaction.response.send_modal(NameModal("Reassign Healer", "Character name", slash_reassignhealer))
 
 
-class HealersPanelView(discord.ui.View):
+class DeleteCharacterView(discord.ui.View):
     def __init__(self): super().__init__(timeout=240)
-    @discord.ui.button(label="Add Healer", style=discord.ButtonStyle.primary)
-    async def add(self, interaction, button): await interaction.response.send_modal(NameModal("Add Healer", "Character name", slash_assignhealer))
-    @discord.ui.button(label="Manual Assign", style=discord.ButtonStyle.primary)
-    async def manual(self, interaction, button): await interaction.response.send_message("**Manual Assign: Healer**", view=ManualAssignView("healer"), ephemeral=True)
-    @discord.ui.button(label="Remove Healer", style=discord.ButtonStyle.secondary)
-    async def remove(self, interaction, button): await interaction.response.send_modal(NameModal("Remove Healer", "Character name", slash_removehealer))
-    @discord.ui.button(label="Reassign Healer", style=discord.ButtonStyle.secondary)
-    async def reassign(self, interaction, button): await interaction.response.send_modal(NameModal("Reassign Healer", "Character name", slash_reassignhealer))
-    @discord.ui.button(label="View Healer Formation", style=discord.ButtonStyle.secondary)
-    async def slots(self, interaction, button): await slash_healerslots(interaction)
-    @discord.ui.button(label="Reset Healers", style=discord.ButtonStyle.danger)
-    async def reset(self, interaction, button): await interaction.response.send_message("Reset healer formation?", view=ConfirmResetView("Healers", slash_resethealers), ephemeral=True)
+    @discord.ui.button(label="Remove Rider", style=discord.ButtonStyle.danger, row=0)
+    async def rider(self, interaction, button): await interaction.response.send_modal(NameModal("Remove Rider", "Character name", slash_removerider))
+    @discord.ui.button(label="Remove Infantry", style=discord.ButtonStyle.danger, row=0)
+    async def infantry(self, interaction, button): await interaction.response.send_modal(NameModal("Remove Infantry", "Character name", slash_removeinfantry))
+    @discord.ui.button(label="Remove Scribe", style=discord.ButtonStyle.danger, row=1)
+    async def scribe(self, interaction, button): await interaction.response.send_modal(NameModal("Remove Scribe", "Character name", slash_removescribe))
+    @discord.ui.button(label="Remove Healer", style=discord.ButtonStyle.danger, row=1)
+    async def healer(self, interaction, button): await interaction.response.send_modal(NameModal("Remove Healer", "Character name", slash_removehealer))
 
 
-class RosterPanelView(discord.ui.View):
+class RosterLookupView(discord.ui.View):
     def __init__(self): super().__init__(timeout=240)
-    @discord.ui.button(label="Roster: All", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="View Full Roster", style=discord.ButtonStyle.primary, row=0)
     async def all(self, interaction, button): await slash_roster(interaction, app_commands.Choice(name="All", value="all"))
-    @discord.ui.button(label="Roster: Names Only", style=discord.ButtonStyle.secondary)
-    async def simple(self, interaction, button): await slash_roster(interaction, app_commands.Choice(name="Simple", value="simple"))
-    @discord.ui.button(label="Who Is?", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="View Rider Formation", style=discord.ButtonStyle.secondary, row=0)
+    async def riders(self, interaction, button): await slash_riderslots(interaction)
+    @discord.ui.button(label="View Infantry Formation", style=discord.ButtonStyle.secondary, row=1)
+    async def infantry(self, interaction, button): await slash_infantryslots(interaction)
+    @discord.ui.button(label="View Scribe Formation", style=discord.ButtonStyle.secondary, row=1)
+    async def scribes(self, interaction, button): await slash_scribeslots(interaction)
+    @discord.ui.button(label="View Healer Formation", style=discord.ButtonStyle.secondary, row=2)
+    async def healers(self, interaction, button): await slash_healerslots(interaction)
+    @discord.ui.button(label="Who Is?", style=discord.ButtonStyle.secondary, row=2)
     async def whois(self, interaction, button): await interaction.response.send_modal(NameModal("Who Is?", "Character name", slash_whois))
-    @discord.ui.button(label="Riders", style=discord.ButtonStyle.secondary)
-    async def riders(self, interaction, button): await slash_roster(interaction, app_commands.Choice(name="Riders", value="riders"))
-    @discord.ui.button(label="Infantry", style=discord.ButtonStyle.secondary)
-    async def infantry(self, interaction, button): await slash_roster(interaction, app_commands.Choice(name="Infantry", value="infantry"))
-    @discord.ui.button(label="Scribes", style=discord.ButtonStyle.secondary)
-    async def scribes(self, interaction, button): await slash_roster(interaction, app_commands.Choice(name="Scribes", value="scribes"))
-    @discord.ui.button(label="Healers", style=discord.ButtonStyle.secondary)
-    async def healers(self, interaction, button): await slash_roster(interaction, app_commands.Choice(name="Healers", value="healers"))
 
 
 class CombatPanelView(discord.ui.View):
     def __init__(self): super().__init__(timeout=240)
-    @discord.ui.button(label="Fight", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="Fight", style=discord.ButtonStyle.primary, row=0)
     async def fight(self, interaction, button): await interaction.response.send_modal(TwoNameModal("Roll Fight", slash_fight))
-    @discord.ui.button(label="Full RP Fight", style=discord.ButtonStyle.primary)
-    async def fullfight(self, interaction, button): await interaction.response.send_modal(TwoNameModal("Full RP Fight", slash_fullfight))
-    @discord.ui.button(label="Fight Log", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="Fight Log", style=discord.ButtonStyle.secondary, row=0)
     async def fightlog(self, interaction, button): await interaction.response.send_modal(NameModal("Fight Log", "Character name", slash_fightlog))
-    @discord.ui.button(label="Masterboard", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="Masterboard", style=discord.ButtonStyle.secondary, row=1)
     async def masterboard(self, interaction, button): await slash_masterboard(interaction)
-    @discord.ui.button(label="Clear One Fight Record", style=discord.ButtonStyle.danger)
+    @discord.ui.button(label="Clear One Fight Record", style=discord.ButtonStyle.danger, row=1)
     async def clearone(self, interaction, button): await interaction.response.send_modal(NameModal("Clear Fight Record", "Character name", slash_clearfights))
-    @discord.ui.button(label="Clear All Fight Records", style=discord.ButtonStyle.danger)
+    @discord.ui.button(label="Clear All Fight Records", style=discord.ButtonStyle.danger, row=2)
     async def clearall(self, interaction, button): await interaction.response.send_message("Clear ALL fight records?", view=ConfirmResetView("Fight Records", slash_clearallfights), ephemeral=True)
 
 
@@ -2473,84 +2524,82 @@ class MatPanelView(discord.ui.View):
 
 class GauntletPanelView(discord.ui.View):
     def __init__(self): super().__init__(timeout=240)
-    @discord.ui.button(label="Run Gauntlet", style=discord.ButtonStyle.primary)
-    async def gauntlet(self, interaction, button): await interaction.response.send_modal(NameModal("Run Gauntlet", "Character name", slash_gauntlet))
     @discord.ui.button(label="Gauntlet Hazard", style=discord.ButtonStyle.secondary)
     async def hazard(self, interaction, button): await slash_gauntlethazard(interaction)
-    @discord.ui.button(label="Gauntlet Action", style=discord.ButtonStyle.secondary)
-    async def action(self, interaction, button): await interaction.response.send_modal(NameModal("Gauntlet Action", "Character name", slash_gauntletaction))
     @discord.ui.button(label="Gauntlet Injury", style=discord.ButtonStyle.secondary)
     async def injury(self, interaction, button): await slash_gauntletinjury(interaction)
-    @discord.ui.button(label="Gauntlet Outcome", style=discord.ButtonStyle.secondary)
-    async def outcome(self, interaction, button): await slash_gauntletoutcome(interaction)
 
 
-class RandomizerPanelView(discord.ui.View):
+class RandomizeCharacterView(discord.ui.View):
     def __init__(self): super().__init__(timeout=240)
     @discord.ui.button(label="Create Character", style=discord.ButtonStyle.primary)
-    async def create(self, interaction, button): await interaction.response.send_message("**Choose character type.**", view=CharacterRandomizeView(), ephemeral=True)
-    @discord.ui.button(label="Threshing", style=discord.ButtonStyle.secondary)
-    async def threshing(self, interaction, button): await slash_threshing(interaction)
-    @discord.ui.button(label="Signet", style=discord.ButtonStyle.secondary)
+    async def create(self, interaction, button): await interaction.response.send_message("**Choose character type.**\n`/createcharacter quadrant`", view=CharacterRandomizeView(), ephemeral=True)
+
+
+class SignetPanelView(discord.ui.View):
+    def __init__(self): super().__init__(timeout=240)
+    @discord.ui.button(label="Roll Signet", style=discord.ButtonStyle.primary)
     async def signet(self, interaction, button): await slash_signet(interaction)
+
+
+class DragonsPanelView(discord.ui.View):
+    def __init__(self): super().__init__(timeout=240)
     @discord.ui.button(label="Dragon Speak", style=discord.ButtonStyle.secondary)
     async def ds(self, interaction, button): await slash_dragonspeak(interaction)
     @discord.ui.button(label="Dragon Action", style=discord.ButtonStyle.secondary)
     async def da(self, interaction, button): await slash_dragonaction(interaction)
-    @discord.ui.button(label="Infantry Specialty", style=discord.ButtonStyle.secondary)
+
+
+class SpecialtyDragonPanelView(discord.ui.View):
+    def __init__(self): super().__init__(timeout=240)
+    @discord.ui.button(label="Infantry Specialty", style=discord.ButtonStyle.secondary, row=0)
     async def infantry(self, interaction, button): await slash_infantry(interaction)
-    @discord.ui.button(label="Scribe Specialty", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="Scribe Specialty", style=discord.ButtonStyle.secondary, row=0)
     async def scribe(self, interaction, button): await slash_scribe(interaction)
-    @discord.ui.button(label="Healer Discipline", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="Healer Discipline", style=discord.ButtonStyle.secondary, row=1)
     async def healer(self, interaction, button): await slash_healer(interaction)
+    @discord.ui.button(label="Threshing", style=discord.ButtonStyle.secondary, row=1)
+    async def threshing(self, interaction, button): await slash_threshing(interaction)
+    @discord.ui.button(label="Show Specialty Guide", style=discord.ButtonStyle.secondary, row=2)
+    async def guide(self, interaction, button): await send_chunks_interaction(interaction, formation_lore_reference_text(), ephemeral=True)
 
 
 class DicePanelView(discord.ui.View):
     def __init__(self): super().__init__(timeout=240)
     @discord.ui.button(label="Roll Custom Dice", style=discord.ButtonStyle.primary)
     async def custom(self, interaction, button): await interaction.response.send_modal(DiceModal())
-    @discord.ui.button(label="d4", style=discord.ButtonStyle.secondary)
-    async def d4(self, interaction, button): await slash_die(interaction, app_commands.Choice(name="d4", value="d4"))
-    @discord.ui.button(label="d6", style=discord.ButtonStyle.secondary)
-    async def d6(self, interaction, button): await slash_die(interaction, app_commands.Choice(name="d6", value="d6"))
-    @discord.ui.button(label="d8", style=discord.ButtonStyle.secondary)
-    async def d8(self, interaction, button): await slash_die(interaction, app_commands.Choice(name="d8", value="d8"))
-    @discord.ui.button(label="d10", style=discord.ButtonStyle.secondary)
-    async def d10(self, interaction, button): await slash_die(interaction, app_commands.Choice(name="d10", value="d10"))
-    @discord.ui.button(label="d12", style=discord.ButtonStyle.secondary)
-    async def d12(self, interaction, button): await slash_die(interaction, app_commands.Choice(name="d12", value="d12"))
-    @discord.ui.button(label="d20", style=discord.ButtonStyle.secondary)
-    async def d20(self, interaction, button): await slash_die(interaction, app_commands.Choice(name="d20", value="d20"))
-    @discord.ui.button(label="d100", style=discord.ButtonStyle.secondary)
-    async def d100(self, interaction, button): await slash_die(interaction, app_commands.Choice(name="d100", value="d100"))
 
 
 class MainPanelView(discord.ui.View):
     def __init__(self): super().__init__(timeout=300)
-    @discord.ui.button(label="Riders", style=discord.ButtonStyle.primary, row=0)
-    async def riders(self, interaction, button): await interaction.response.send_message("**Rider Commands**", view=RidersPanelView(), ephemeral=True)
-    @discord.ui.button(label="Infantry", style=discord.ButtonStyle.primary, row=0)
-    async def infantry(self, interaction, button): await interaction.response.send_message("**Infantry Commands**", view=InfantryPanelView(), ephemeral=True)
-    @discord.ui.button(label="Scribes", style=discord.ButtonStyle.primary, row=0)
-    async def scribes(self, interaction, button): await interaction.response.send_message("**Scribe Commands**", view=ScribesPanelView(), ephemeral=True)
-    @discord.ui.button(label="Healers", style=discord.ButtonStyle.primary, row=0)
-    async def healers(self, interaction, button): await interaction.response.send_message("**Healer Commands**", view=HealersPanelView(), ephemeral=True)
+    @discord.ui.button(label="Manual assign a character", style=discord.ButtonStyle.primary, row=0)
+    async def manual(self, interaction, button): await interaction.response.send_message("**Manual assign a character**", view=ManualAssignCharactersView(), ephemeral=True)
+    @discord.ui.button(label="Assign Formation Roles", style=discord.ButtonStyle.primary, row=0)
+    async def assign(self, interaction, button): await interaction.response.send_message("**Assign Formation Roles**", view=AssignFormationRolesView(), ephemeral=True)
+    @discord.ui.button(label="Reassign Characters Random", style=discord.ButtonStyle.secondary, row=0)
+    async def reassign(self, interaction, button): await interaction.response.send_message("**Reassign Characters Random**", view=ReassignCharactersView(), ephemeral=True)
+    @discord.ui.button(label="Delete Character", style=discord.ButtonStyle.danger, row=1)
+    async def delete(self, interaction, button): await interaction.response.send_message("**Delete Character**", view=DeleteCharacterView(), ephemeral=True)
     @discord.ui.button(label="Roster + Lookup", style=discord.ButtonStyle.secondary, row=1)
-    async def roster(self, interaction, button): await interaction.response.send_message("**Roster + Lookup**", view=RosterPanelView(), ephemeral=True)
-    @discord.ui.button(label="Combat + Tracking", style=discord.ButtonStyle.secondary, row=1)
-    async def combat(self, interaction, button): await interaction.response.send_message("**Combat + Tracking**", view=CombatPanelView(), ephemeral=True)
-    @discord.ui.button(label="Mat System", style=discord.ButtonStyle.secondary, row=1)
+    async def roster(self, interaction, button): await interaction.response.send_message("**Roster + Lookup**", view=RosterLookupView(), ephemeral=True)
+    @discord.ui.button(label="Combat", style=discord.ButtonStyle.secondary, row=1)
+    async def combat(self, interaction, button): await interaction.response.send_message("**Combat**", view=CombatPanelView(), ephemeral=True)
+    @discord.ui.button(label="Mat System", style=discord.ButtonStyle.secondary, row=2)
     async def mats(self, interaction, button): await interaction.response.send_message("**Mat System**", view=MatPanelView(), ephemeral=True)
-    @discord.ui.button(label="Gauntlet", style=discord.ButtonStyle.secondary, row=1)
-    async def gauntlet(self, interaction, button): await interaction.response.send_message("**Gauntlet Commands**", view=GauntletPanelView(), ephemeral=True)
-    @discord.ui.button(label="Randomizing", style=discord.ButtonStyle.success, row=2)
-    async def randomizing(self, interaction, button): await interaction.response.send_message("**Randomizing Commands**", view=RandomizerPanelView(), ephemeral=True)
-    @discord.ui.button(label="Dice", style=discord.ButtonStyle.success, row=2)
-    async def dice(self, interaction, button): await interaction.response.send_message("**Dice Commands**", view=DicePanelView(), ephemeral=True)
-    @discord.ui.button(label="Help Guide", style=discord.ButtonStyle.secondary, row=2)
+    @discord.ui.button(label="Gauntlet", style=discord.ButtonStyle.secondary, row=2)
+    async def gauntlet(self, interaction, button): await interaction.response.send_message("**Gauntlet**", view=GauntletPanelView(), ephemeral=True)
+    @discord.ui.button(label="Randomize Character", style=discord.ButtonStyle.success, row=2)
+    async def random_char(self, interaction, button): await interaction.response.send_message("**Randomizing Commands**", view=RandomizeCharacterView(), ephemeral=True)
+    @discord.ui.button(label="Roll for Signet", style=discord.ButtonStyle.success, row=3)
+    async def signet(self, interaction, button): await interaction.response.send_message("**Roll for Signet**", view=SignetPanelView(), ephemeral=True)
+    @discord.ui.button(label="Dragons", style=discord.ButtonStyle.success, row=3)
+    async def dragons(self, interaction, button): await interaction.response.send_message("**Dragons**", view=DragonsPanelView(), ephemeral=True)
+    @discord.ui.button(label="Roll for Specialty/Dragon", style=discord.ButtonStyle.success, row=3)
+    async def specialty(self, interaction, button): await interaction.response.send_message("**Roll for Specialty/Dragon**", view=SpecialtyDragonPanelView(), ephemeral=True)
+    @discord.ui.button(label="Dice", style=discord.ButtonStyle.secondary, row=4)
+    async def dice(self, interaction, button): await interaction.response.send_message("**Dice**", view=DicePanelView(), ephemeral=True)
+    @discord.ui.button(label="Help Guide", style=discord.ButtonStyle.secondary, row=4)
     async def help(self, interaction, button): await send_chunks_interaction(interaction, build_slash_help_text(), ephemeral=True)
-
-
 @bot.tree.command(name="panel", description="Open the Basgiath button control panel")
 async def slash_panel(interaction: discord.Interaction):
     await interaction.response.send_message(
@@ -2564,86 +2613,104 @@ async def slash_panel(interaction: discord.Interaction):
 def build_slash_help_text():
     help_text = (
         "📖 **Basgiath Slash Command Guide**\n\n"
-        "`/panel` : Open button menu for manual assign, random characters, randomizers, roster, and help\n\n"
+        "`/panel` : Open the button menu\n\n"
 
-        "**Formations**\n\n"
-
-        "**Riders**\n"
-        "`/assignrider name` : Add a rider\n"
+        "━━━━━━━━━━━━━━━━━━━\n"
+        "## BUTTON: Manual assign a character\n"
+        "━━━━━━━━━━━━━━━━━━━\n"
         "`/manualassign name role wing section squad` : Manually assign rider with dropdowns\n"
-        "`/removerider name` : Remove rider\n"
-        "`/reassignrider name` : Reassign rider\n"
-        "`/riderslots` : View rider formation\n"
-        "`/resetriders` : Reset rider formation\n\n"
-
-        "**Infantry**\n"
-        "`/assigninfantry name` : Add to infantry\n"
         "`/manualinfantry name role division` : Manually assign infantry with dropdowns\n"
-        "`/removeinfantry name` : Remove from infantry\n"
-        "`/reassigninfantry name` : Reassign infantry\n"
-        "`/infantryslots` : View infantry formation\n"
-        "`/resetinfantry` : Reset infantry formation\n\n"
-
-        "**Scribes**\n"
-        "`/assignscribe name` : Add to scribes\n"
         "`/manualscribe name role order` : Manually assign scribe with dropdowns\n"
-        "`/removescribe name` : Remove from scribes\n"
+        "`/manualhealer name role circle` : Manually assign healer with dropdowns\n\n"
+
+        "━━━━━━━━━━━━━━━━━━━\n"
+        "## BUTTON: Assign Formation Roles\n"
+        "━━━━━━━━━━━━━━━━━━━\n"
+        "`/assignrider name` : Add a rider to formation\n"
+        "`/assigninfantry name` : Assign infantry specialties and division\n"
+        "`/assignhealer name` : Add to healer specialty\n"
+        "`/assignscribe name` : Add to scribes\n\n"
+
+        "**Specialty Guide**\n"
+        f"{formation_lore_reference_text()}\n\n"
+
+        "━━━━━━━━━━━━━━━━━━━\n"
+        "## BUTTON: Reassign Characters Random\n"
+        "━━━━━━━━━━━━━━━━━━━\n"
+        "`/reassignrider name` : Reassign rider\n"
+        "`/reassigninfantry name` : Reassign infantry\n"
         "`/reassignscribe name` : Reassign scribe\n"
+        "`/reassignhealer name` : Reassign healer\n\n"
+
+        "━━━━━━━━━━━━━━━━━━━\n"
+        "## BUTTON: Delete Character\n"
+        "━━━━━━━━━━━━━━━━━━━\n"
+        "`/removerider name` : Remove rider\n"
+        "`/removeinfantry name` : Remove from infantry\n"
+        "`/removescribe name` : Remove from scribes\n"
+        "`/removehealer name` : Remove from healers\n\n"
+
+        "━━━━━━━━━━━━━━━━━━━\n"
+        "## BUTTON: Roster + Lookup\n"
+        "━━━━━━━━━━━━━━━━━━━\n"
+        "`/roster` : View Full Roster\n"
+        "`/whois name` : View character details\n"
+        "`/riderslots` : View rider formation\n"
+        "`/infantryslots` : View infantry formation\n"
         "`/scribeslots` : View scribe formation\n"
-        "`/resetscribes` : Reset scribe formation\n\n"
+        "`/healerslots` : View healer formation\n\n"
 
-        "**Healers**\n"
-        "`/assignhealer name` : Add to healers\n"
-        "`/manualhealer name role circle` : Manually assign healer with dropdowns\n"
-        "`/removehealer name` : Remove from healers\n"
-        "`/reassignhealer name` : Reassign healer\n"
-        "`/healerslots` : View healer formation\n"
-        "`/resethealers` : Reset healer formation\n\n"
-
-        "**Roster + Lookup**\n"
-        "`/roster filter` : View all characters, names only, or one quadrant\n"
-        "`/whois name` : View character details\n\n"
-
-        "**Combat + Tracking**\n"
+        "━━━━━━━━━━━━━━━━━━━\n"
+        "## BUTTON: Combat\n"
+        "━━━━━━━━━━━━━━━━━━━\n"
         "`/fight name_one name_two` : Roll a fight\n"
-        "`/fullfight name_one name_two` : RP fight scene\n"
-        "`/fightlog name` : View fight history\n"
+        "`/fightlog name` : View fight history for one person\n"
         "`/masterboard` : View all fighters\n"
         "`/clearfights name` : Clear one record\n"
         "`/clearallfights` : Clear all records\n\n"
 
-        "**Mat System**\n"
+        "━━━━━━━━━━━━━━━━━━━\n"
+        "## BUTTON: Mat System\n"
+        "━━━━━━━━━━━━━━━━━━━\n"
         "`/activemats` : Show active rider and infantry fighters\n"
         "`/matpairs` : Randomly pair fighters\n\n"
 
-        "**Gauntlet**\n"
-        "`/gauntlet name` : Run gauntlet\n"
+        "━━━━━━━━━━━━━━━━━━━\n"
+        "## BUTTON: Gauntlet\n"
+        "━━━━━━━━━━━━━━━━━━━\n"
         "`/gauntlethazard` : Generate next gauntlet obstacle\n"
-        "`/gauntletaction name` : Quick gauntlet action\n"
-        "`/gauntletinjury` : Random gauntlet injury/consequence\n"
-        "`/gauntletoutcome` : Random gauntlet outcome\n\n"
+        "`/gauntletinjury` : Random gauntlet injury/consequence\n\n"
 
-        "**Randomizing Commands**\n"
-        "`/createcharacter quadrant` : Randomize character with quadrant dropdown\n"
-        "`/random kind` : Pick a randomizer from a dropdown\n"
-        "`/threshing` : Random dragon color + tail\n"
-        "`/signet` : Random signet\n"
+        "━━━━━━━━━━━━━━━━━━━\n"
+        "## BUTTON: Randomizing Commands\n"
+        "━━━━━━━━━━━━━━━━━━━\n"
+        "`/createcharacter quadrant` : Randomize character with quadrant dropdown\n\n"
+
+        "━━━━━━━━━━━━━━━━━━━\n"
+        "## BUTTON: Roll for Signet\n"
+        "━━━━━━━━━━━━━━━━━━━\n"
+        "`/signet` : Random signet\n\n"
+
+        "━━━━━━━━━━━━━━━━━━━\n"
+        "## BUTTON: Dragons\n"
+        "━━━━━━━━━━━━━━━━━━━\n"
         "`/dragonspeak` : Random dragon reaction\n"
-        "`/dragonaction` : Random dragon action\n"
+        "`/dragonaction` : Random dragon action\n\n"
+
+        "━━━━━━━━━━━━━━━━━━━\n"
+        "## BUTTON: Roll for Specialty/Dragon\n"
+        "━━━━━━━━━━━━━━━━━━━\n"
         "`/infantry` : Random infantry specialty\n"
         "`/scribe` : Random scribe specialty\n"
-        "`/healer` : Random healer discipline\n\n"
+        "`/healer` : Random healer discipline\n"
+        "`/threshing` : Random dragon color + tail\n\n"
 
-        "**Dice**\n"
-        "`/roll dice` : Roll dice, like d20 or 2d6+3\n"
-        "`/die die` : Roll one die from a dropdown\n\n"
+        "━━━━━━━━━━━━━━━━━━━\n"
+        "## BUTTON: Dice\n"
+        "━━━━━━━━━━━━━━━━━━━\n"
+        "`/roll dice` : Roll dice, like d20 or 2d6+3\n\n"
 
-        "**Admin**\n"
-        "`/hardreset` : Reset EVERYTHING (admin only)\n\n"
-
-        "**Other**\n"
-        "Mention the bot : Random in-character response\n\n"
-        "Use character names for most commands. Anything with set options uses dropdowns."
+        "**Admin commands still exist:** `/resetinfantry`, `/resetscribes`, `/resethealers`, `/resetriders`, `/hardreset`"
     )
     return help_text
 
