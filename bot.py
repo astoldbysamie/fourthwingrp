@@ -2705,7 +2705,7 @@ async def rphelp(ctx):
         "`!d20` : Roll d20\n"
         "`!d100` : Roll d100\n\n"
 
-        " # Making a character \n\n"
+        " **#Making a character** \n\n"
   
         "**Roster + Lookup**\n"
         "`!allcharacters` : View all characters\n"
