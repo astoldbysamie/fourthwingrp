@@ -2755,10 +2755,6 @@ async def rphelp(ctx):
 
         "**Admin**\n"
         "`!hardreset` : Reset EVERYTHING (admin only)\n\n"
-
-        "**Other**\n"
-        "Mention the bot : Random in-character response\n\n"
-        "Use character names for most commands."
     )
 
     for chunk in split_long_message(help_text):
