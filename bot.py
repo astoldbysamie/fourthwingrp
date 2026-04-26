@@ -1,6 +1,6 @@
 import discord
-from discord.ext import commands
 from discord import app_commands
+from discord.ext import commands
 import logging
 from dotenv import load_dotenv
 import os
@@ -953,10 +953,9 @@ def format_fight_log(name: str):
 async def on_ready():
     try:
         synced = await bot.tree.sync()
-        print(f"Synced {len(synced)} slash commands.")
+        print(f"Synced {len(synced)} slash commands")
     except Exception as e:
         print(f"Slash command sync failed: {e}")
-
     print(f"Logged in as {bot.user}")
 
 
@@ -1157,7 +1156,7 @@ async def signet(ctx):
 # -----------------------------
 # CHARACTER CREATION COMMANDS
 # -----------------------------
-@bot.command(name="createcharacter", aliases=["character", "oc", "makecharacter"])
+@bot.command(name="createcharacter")
 async def createcharacter(ctx, quadrant: str = None):
     try:
         profile = create_character_profile(quadrant)
@@ -2405,7 +2404,7 @@ async def activemats(ctx):
         await ctx.send(chunk)
 
 
-@bot.command(name="matpairs", aliases=["matchallenge", "mats"])
+@bot.command(name="matpairs")
 async def matpairs(ctx):
     active_names = collect_active_mat_characters()
 
@@ -2518,7 +2517,7 @@ async def fullfight(ctx, *, args: str):
     )
 
 
-@bot.command(aliases=["fightrecord", "record", "fights"])
+@bot.command()
 async def fightlog(ctx, *, name: str):
     output = format_fight_log(name)
     if output is None:
@@ -2536,7 +2535,7 @@ async def masterboard(ctx):
         await ctx.send(chunk)
 
 
-@bot.command(name="allcharacters", aliases=["roster", "rpcast"])
+@bot.command(name="allcharacters")
 async def allcharacters(ctx, *, filter_term: str = None):
     active = get_all_active_characters()
 
@@ -2605,7 +2604,7 @@ async def allcharacters(ctx, *, filter_term: str = None):
         await ctx.send(chunk)
 
 
-@bot.command(name="whois", aliases=["whereis", "lookupcharacter"])
+@bot.command(name="whois")
 async def whois(ctx, *, name: str):
     info = resolve_active_character(name)
 
@@ -2624,6 +2623,259 @@ async def whois(ctx, *, name: str):
         f"Total Fights: **{len(record['fights'])}**"
     )
 
+
+
+# -----------------------------
+# SLASH COMMAND HELPERS
+# -----------------------------
+async def send_interaction_chunks(interaction: discord.Interaction, text: str):
+    chunks = split_long_message(text)
+    if not interaction.response.is_done():
+        await interaction.response.send_message(chunks[0])
+        chunks = chunks[1:]
+    for chunk in chunks:
+        await interaction.followup.send(chunk)
+
+QUADRANT_CHOICES = [
+    app_commands.Choice(name="Any", value="any"),
+    app_commands.Choice(name="Riders", value="riders"),
+    app_commands.Choice(name="Infantry", value="infantry"),
+    app_commands.Choice(name="Scribes", value="scribes"),
+    app_commands.Choice(name="Healers", value="healers"),
+]
+RIDER_ROLE_CHOICES = [app_commands.Choice(name=x, value=x) for x in ["Wingleader", "Wing Executive Officer", "Section Leader", "Section Executive Officer", "Squad Leader", "Executive Squad Leader", "Cadet"]]
+WING_CHOICES = [app_commands.Choice(name=x, value=x) for x in ["First Wing", "Second Wing", "Third Wing", "Fourth Wing"]]
+SECTION_CHOICES = [app_commands.Choice(name="None", value=""), app_commands.Choice(name="Flame Section", value="Flame Section"), app_commands.Choice(name="Claw Section", value="Claw Section"), app_commands.Choice(name="Tail Section", value="Tail Section")]
+SQUAD_CHOICES = [app_commands.Choice(name="None", value=""), app_commands.Choice(name="First Squad", value="First Squad")]
+INFANTRY_ROLE_CHOICES = [app_commands.Choice(name=x, value=x) for x in ["High Commander", "Commander", "Captain", "Sergeant", "Corporal", "Soldier", "Cadet"]]
+DIVISION_CHOICES = [app_commands.Choice(name="None", value=""), app_commands.Choice(name="First Division", value="First Division"), app_commands.Choice(name="Second Division", value="Second Division"), app_commands.Choice(name="Third Division", value="Third Division"), app_commands.Choice(name="Fourth Division", value="Fourth Division")]
+SCRIBE_ROLE_CHOICES = [app_commands.Choice(name=x, value=x) for x in ["Grand Maester", "Head Archivist", "Master Scholar", "Curator", "Archivist", "Senior Scribe", "Scribe"]]
+ORDER_CHOICES = [app_commands.Choice(name="None", value=""), app_commands.Choice(name="First Order", value="First Order"), app_commands.Choice(name="Second Order", value="Second Order"), app_commands.Choice(name="Third Order", value="Third Order"), app_commands.Choice(name="Fourth Order", value="Fourth Order")]
+HEALER_ROLE_CHOICES = [app_commands.Choice(name=x, value=x) for x in ["Arch Healer", "Healer", "Senior Practitioner", "Practitioner", "Medic", "Acolyte", "Trainee"]]
+CIRCLE_CHOICES = [app_commands.Choice(name="None", value=""), app_commands.Choice(name="First Circle", value="First Circle"), app_commands.Choice(name="Second Circle", value="Second Circle"), app_commands.Choice(name="Third Circle", value="Third Circle"), app_commands.Choice(name="Fourth Circle", value="Fourth Circle")]
+DICE_CHOICES = [app_commands.Choice(name=x, value=x) for x in ["d4", "d6", "d8", "d10", "d12", "d20", "d100"]]
+ROSTER_FILTER_CHOICES = [app_commands.Choice(name="Full", value="full"), app_commands.Choice(name="Simple names only", value="simple"), app_commands.Choice(name="Riders", value="riders"), app_commands.Choice(name="Infantry", value="infantry"), app_commands.Choice(name="Scribes", value="scribes"), app_commands.Choice(name="Healers", value="healers")]
+
+async def run_fight_slash(interaction: discord.Interaction, name_one: str, name_two: str, full_scene: bool = False):
+    global fight_records
+    name_one, name_two = name_one.strip(), name_two.strip()
+    if not name_one or not name_two:
+        await interaction.response.send_message("Enter two character names.", ephemeral=True)
+        return
+    if normalize_name(name_one) == normalize_name(name_two):
+        await interaction.response.send_message("A character cannot fight themselves.", ephemeral=True)
+        return
+    roll_one, roll_two = random.randint(1, 20), random.randint(1, 20)
+    if roll_one > roll_two:
+        winner, outcome_one, outcome_two, result_text = name_one, "win", "loss", f"**Winner:** {name_one}"
+    elif roll_two > roll_one:
+        winner, outcome_one, outcome_two, result_text = name_two, "loss", "win", f"**Winner:** {name_two}"
+    else:
+        winner, outcome_one, outcome_two, result_text = None, "draw", "draw", "**Result:** Draw"
+    record_fight_result(name_one, name_two, roll_one, roll_two, outcome_one)
+    record_fight_result(name_two, name_one, roll_two, roll_one, outcome_two)
+    save_json_file(FIGHT_FILE, fight_records)
+    if full_scene:
+        scene = build_fullfight_scene(name_one, roll_one, name_two, roll_two, winner)
+        text = f"**Full Fight Scene**\n{scene}\n\n{name_one}: **{roll_one}**\n{name_two}: **{roll_two}**\n{result_text}"
+    else:
+        text = f"**Mat Challenge**\n{name_one}: **{roll_one}**\n{name_two}: **{roll_two}**\n{result_text}"
+    await interaction.response.send_message(text)
+
+# -----------------------------
+# SLASH COMMANDS
+# -----------------------------
+@bot.tree.command(name="help", description="Show the Basgiath command guide")
+async def slash_help(interaction: discord.Interaction):
+    await send_interaction_chunks(interaction, build_help_text())
+
+@bot.tree.command(name="createcharacter", description="Randomize a character")
+@app_commands.describe(quadrant="Choose a quadrant or Any")
+@app_commands.choices(quadrant=QUADRANT_CHOICES)
+async def slash_createcharacter(interaction: discord.Interaction, quadrant: app_commands.Choice[str] = None):
+    try:
+        selected = None if quadrant is None or quadrant.value == "any" else quadrant.value
+        profile = create_character_profile(selected)
+    except RuntimeError as e:
+        await interaction.response.send_message(f"**Character creation failed:** {e}")
+        return
+    await send_interaction_chunks(interaction, profile)
+
+@bot.tree.command(name="fight", description="Roll a fight between two typed character names")
+@app_commands.describe(name_one="First character name", name_two="Second character name")
+async def slash_fight(interaction: discord.Interaction, name_one: str, name_two: str):
+    await run_fight_slash(interaction, name_one, name_two, False)
+
+@bot.tree.command(name="fullfight", description="Roll a fight and write a short RP fight scene")
+@app_commands.describe(name_one="First character name", name_two="Second character name")
+async def slash_fullfight(interaction: discord.Interaction, name_one: str, name_two: str):
+    await run_fight_slash(interaction, name_one, name_two, True)
+
+@bot.tree.command(name="roll", description="Roll dice")
+@app_commands.describe(dice="Choose a die")
+@app_commands.choices(dice=DICE_CHOICES)
+async def slash_roll(interaction: discord.Interaction, dice: app_commands.Choice[str] = None):
+    dice_value = dice.value if dice else "d20"
+    sides = int(dice_value.replace("d", ""))
+    roll_value = random.randint(1, sides)
+    await interaction.response.send_message(f"**{dice_value} Roll**\nYou rolled: **{roll_value}**")
+
+@bot.tree.command(name="manualassign", description="Manually assign a rider")
+@app_commands.describe(name="Character name", role="Rider role", wing="Wing", section="Section if needed", squad="Squad if needed")
+@app_commands.choices(role=RIDER_ROLE_CHOICES, wing=WING_CHOICES, section=SECTION_CHOICES, squad=SQUAD_CHOICES)
+async def slash_manualassign(interaction: discord.Interaction, name: str, role: app_commands.Choice[str], wing: app_commands.Choice[str], section: app_commands.Choice[str] = None, squad: app_commands.Choice[str] = None):
+    global rider_data
+    section_name = section.value if section and section.value else None
+    squad_name = squad.value if squad and squad.value else None
+    if find_existing_rider_assignment(rider_data, name):
+        await interaction.response.send_message(f"**{name}** is already assigned. Remove or reassign them first.")
+        return
+    error = manual_assign_rider_slot(rider_data, name, role.value, wing.value, section_name, squad_name)
+    if error:
+        await interaction.response.send_message(error)
+        return
+    save_json_file(RIDER_FILE, rider_data)
+    await interaction.response.send_message(format_manual_rider_assignment(name, role.value, wing.value, section_name, squad_name))
+
+@bot.tree.command(name="manualinfantry", description="Manually assign infantry")
+@app_commands.describe(name="Character name", role="Infantry role", division="Division if needed")
+@app_commands.choices(role=INFANTRY_ROLE_CHOICES, division=DIVISION_CHOICES)
+async def slash_manualinfantry(interaction: discord.Interaction, name: str, role: app_commands.Choice[str], division: app_commands.Choice[str] = None):
+    global infantry_data
+    group = division.value if division and division.value else None
+    if find_name_in_simple_structure(infantry_data, name, "Cadets"):
+        await interaction.response.send_message(f"**{name}** is already assigned in infantry.")
+        return
+    error = manual_assign_simple(infantry_data, name, role.value, group, ["High Commander", "Commander"], ["Captain", "Sergeant", "Corporal", "Soldier"], "Cadet", "Cadets")
+    if error:
+        await interaction.response.send_message(error)
+        return
+    save_json_file(INFANTRY_FILE, infantry_data)
+    await interaction.response.send_message(f"⚔️ **{name}** manually assigned as **{role.value}**.")
+
+@bot.tree.command(name="manualscribe", description="Manually assign a scribe")
+@app_commands.describe(name="Character name", role="Scribe role", order="Order if needed")
+@app_commands.choices(role=SCRIBE_ROLE_CHOICES, order=ORDER_CHOICES)
+async def slash_manualscribe(interaction: discord.Interaction, name: str, role: app_commands.Choice[str], order: app_commands.Choice[str] = None):
+    global scribe_data
+    group = order.value if order and order.value else None
+    if find_name_in_simple_structure(scribe_data, name, "Scribes"):
+        await interaction.response.send_message(f"**{name}** is already assigned in the scribes quadrant.")
+        return
+    error = manual_assign_simple(scribe_data, name, role.value, group, ["Grand Maester", "Head Archivist"], ["Master Scholar", "Curator", "Archivist", "Senior Scribe"], "Scribe", "Scribes")
+    if error:
+        await interaction.response.send_message(error)
+        return
+    save_json_file(SCRIBE_FILE, scribe_data)
+    await interaction.response.send_message(f"📚 **{name}** manually assigned as **{role.value}**.")
+
+@bot.tree.command(name="manualhealer", description="Manually assign a healer")
+@app_commands.describe(name="Character name", role="Healer role", circle="Circle if needed")
+@app_commands.choices(role=HEALER_ROLE_CHOICES, circle=CIRCLE_CHOICES)
+async def slash_manualhealer(interaction: discord.Interaction, name: str, role: app_commands.Choice[str], circle: app_commands.Choice[str] = None):
+    global healer_data
+    group = circle.value if circle and circle.value else None
+    if find_name_in_simple_structure(healer_data, name, "Trainees"):
+        await interaction.response.send_message(f"**{name}** is already assigned in healers.")
+        return
+    error = manual_assign_simple(healer_data, name, role.value, group, ["Arch Healer", "Healer"], ["Senior Practitioner", "Practitioner", "Medic", "Acolyte"], "Trainee", "Trainees")
+    if error:
+        await interaction.response.send_message(error)
+        return
+    save_json_file(HEALER_FILE, healer_data)
+    await interaction.response.send_message(f"🌿 **{name}** manually assigned as **{role.value}**.")
+
+@bot.tree.command(name="roster", description="View active characters")
+@app_commands.describe(filter="Choose what roster view to show")
+@app_commands.choices(filter=ROSTER_FILTER_CHOICES)
+async def slash_roster(interaction: discord.Interaction, filter: app_commands.Choice[str] = None):
+    active = get_all_active_characters()
+    if not active:
+        await interaction.response.send_message("No active characters found.")
+        return
+    sorted_chars = sorted(active.values(), key=lambda x: (x["quadrant"], x["name"].lower()))
+    value = filter.value if filter else "full"
+    if value == "simple":
+        lines = ["**All Active Characters**"]
+        current = None
+        for info in sorted_chars:
+            quadrant = info["quadrant"].title()
+            if quadrant != current:
+                current = quadrant
+                lines.append(f"\n**{quadrant}**")
+            lines.append(f"• {info['name']}")
+    elif value in {"riders", "infantry", "scribes", "healers"}:
+        filtered = [info for info in sorted_chars if info["quadrant"] == value]
+        lines = [f"**{value.title()} Roster**"]
+        lines.extend([f"• **{info['name']}** — {info['role']} | {info['assignment']}" for info in filtered] or ["No active characters found."])
+    else:
+        lines = ["**All Active Characters**"]
+        current = None
+        for info in sorted_chars:
+            quadrant = info["quadrant"].title()
+            if quadrant != current:
+                current = quadrant
+                lines.append(f"\n**{quadrant}**")
+            lines.append(f"• **{info['name']}** — {info['role']} | {info['assignment']}")
+    await send_interaction_chunks(interaction, "\n".join(lines))
+
+@bot.tree.command(name="whois", description="Look up one character")
+@app_commands.describe(name="Character name")
+async def slash_whois(interaction: discord.Interaction, name: str):
+    info = resolve_active_character(name)
+    if not info:
+        await interaction.response.send_message(f"Could not find an active assigned character named **{name}**.")
+        return
+    record = fight_records.get(normalize_name(info["name"]), {"wins": 0, "losses": 0, "draws": 0, "fights": []})
+    await interaction.response.send_message(f"**Character Lookup: {info['name']}**\nQuadrant: **{info['quadrant'].title()}**\nRole: **{info['role']}**\nAssignment: **{info['assignment']}**\nFight Record: **{record['wins']}-{record['losses']}-{record['draws']}**\nTotal Fights: **{len(record['fights'])}**")
+
+@bot.tree.command(name="fightlog", description="View fight history for one character")
+@app_commands.describe(name="Character name")
+async def slash_fightlog(interaction: discord.Interaction, name: str):
+    output = format_fight_log(name)
+    if output is None:
+        await interaction.response.send_message(f"Could not find any character or fight record for **{name}**.")
+        return
+    await send_interaction_chunks(interaction, output)
+
+@bot.tree.command(name="masterboard", description="View all fighters and records")
+async def slash_masterboard(interaction: discord.Interaction):
+    await send_interaction_chunks(interaction, format_masterboard())
+
+@bot.tree.command(name="matpairs", description="Randomly pair active rider and infantry fighters")
+async def slash_matpairs(interaction: discord.Interaction):
+    active_names = collect_active_mat_characters()
+    if len(active_names) < 2:
+        await interaction.response.send_message("Not enough active rider and infantry characters to make mat pairings.")
+        return
+    pairs, bye = make_mat_pairs(active_names)
+    lines = ["**Mat Challenge Pairings**"]
+    for index, (first, second, challenge) in enumerate(pairs, start=1):
+        lines.append(f"{index}. **{first}** vs **{second}** : {challenge}")
+    if bye:
+        lines.append("")
+        lines.append(f"**Unpaired this round:** {bye}")
+    await send_interaction_chunks(interaction, "\n".join(lines))
+
+@bot.tree.command(name="random", description="Random RP result")
+@app_commands.describe(type="Choose what to randomize")
+@app_commands.choices(type=[app_commands.Choice(name="Threshing", value="threshing"), app_commands.Choice(name="Signet", value="signet"), app_commands.Choice(name="Dragon Speak", value="dragonspeak"), app_commands.Choice(name="Dragon Action", value="dragonaction"), app_commands.Choice(name="Infantry Specialty", value="infantry"), app_commands.Choice(name="Scribe Specialty", value="scribe"), app_commands.Choice(name="Healer Discipline", value="healer")])
+async def slash_random(interaction: discord.Interaction, type: app_commands.Choice[str]):
+    if type.value == "threshing":
+        text = f"**Threshing Result**\nDragon Color: **{random.choice(DRAGON_COLORS)}**\nTail: **{random.choice(DRAGON_TAILS)}**"
+    elif type.value == "signet":
+        text = f"**Signet Manifestation**\nSignet: **{random.choice(SIGNETS)}**"
+    elif type.value == "dragonspeak":
+        text = f"**Dragon Reaction**\n{random.choice(MENTION_REPLIES)}"
+    elif type.value == "dragonaction":
+        text = f"**Dragon Action**\nYour dragon {random.choice(['spreads their wings', 'crouches low', 'circles once', 'gives a warning growl', 'nudges you', 'snaps their teeth', 'lifts their head', 'stalks forward', 'curls their tail', 'lets out a sharp roar'])}."
+    elif type.value == "infantry":
+        text = f"**Infantry Result**\nCombat Specialty: **{random.choice(INFANTRY_SPECIALTIES)}**"
+    elif type.value == "scribe":
+        text = f"**Scribe Result**\nSubject Specialty: **{random.choice(SCRIBE_SPECIALTIES)}**"
+    else:
+        text = f"**Healer Result**\nHealer Discipline: **{random.choice(HEALER_SPECIALTIES)}**"
+    await interaction.response.send_message(text)
 
  # -----------------------------
 # HELP COMMANDS / ADMIN
@@ -2654,500 +2906,43 @@ async def hardreset_error(ctx, error):
         await ctx.send("You do not have permission to use this command.")
 
 
+def build_help_text():
+    return (
+        "📖 **Basgiath Slash Command Guide**\n\n"
+        "Most commands now use `/` so Discord gives you boxes and dropdowns. The old main `!` commands are still there, but duplicate shortcut aliases were removed.\n\n"
+        "**Main Slash Commands**\n"
+        "`/help` : Show this guide\n"
+        "`/createcharacter` : Randomize Any, Riders, Infantry, Scribes, or Healers with a dropdown\n"
+        "`/manualassign` : Rider manual assignment with role, wing, section, and squad dropdowns\n"
+        "`/manualinfantry` : Infantry manual assignment with role and division dropdowns\n"
+        "`/manualscribe` : Scribe manual assignment with role and order dropdowns\n"
+        "`/manualhealer` : Healer manual assignment with role and circle dropdowns\n\n"
+        "**Combat + Tracking**\n"
+        "`/fight` : Type two names and roll a fight\n"
+        "`/fullfight` : Type two names and roll an RP fight scene\n"
+        "`/fightlog` : View one character's fight history\n"
+        "`/masterboard` : View all fighters and records\n"
+        "`/matpairs` : Randomly pair active rider and infantry fighters\n\n"
+        "**Characters + Randomizers**\n"
+        "`/roster` : View active characters with a filter dropdown\n"
+        "`/whois` : Look up one character\n"
+        "`/random` : Choose Threshing, Signet, Dragon Speak, Dragon Action, Infantry, Scribe, or Healer\n"
+        "`/roll` : Roll a die with a dropdown\n\n"
+        "**Still Available as Main `!` Commands**\n"
+        "`!assignrider`, `!removerider`, `!reassignrider`, `!riderslots`, `!resetriders`\n"
+        "`!assigninfantry`, `!removeinfantry`, `!reassigninfantry`, `!infantryslots`, `!resetinfantry`\n"
+        "`!assignscribe`, `!removescribe`, `!reassignscribe`, `!scribeslots`, `!resetscribes`\n"
+        "`!assignhealer`, `!removehealer`, `!reassignhealer`, `!healerslots`, `!resethealers`\n"
+        "`!gauntlet`, `!gauntlethazard`, `!gauntletaction`, `!gauntletinjury`, `!gauntletoutcome`\n"
+        "`!clearfights`, `!clearallfights`, `!hardreset`\n\n"
+        "**Removed Duplicate Shortcuts**\n"
+        "`!oc`, `!character`, `!makecharacter`, `!roster`, `!rpcast`, `!whereis`, `!lookupcharacter`, `!fightrecord`, `!record`, `!fights`, `!matchallenge`, and `!mats` were removed as aliases so the bot is cleaner.\n"
+    )
+
 @bot.command(name="rphelp")
 async def rphelp(ctx):
-    help_text = (
-        "📖 **Basgiath Command Guide**\n\n"
-
-        "**Formations**\n\n"
-
-        "**Riders**\n"
-        "`!assignrider name` : Add a rider\n"
-        "`!manualassign name | role | wing | section | squad` : Manually assign rider\n"
-        "`!removerider name` : Remove rider\n"
-        "`!reassignrider name` : Reassign rider\n"
-        "`!riderslots` : View rider formation\n"
-        "`!resetriders` : Reset rider formation\n\n"
-
-        "**Infantry**\n"
-        "`!assigninfantry name` : Add to infantry\n"
-        "`!manualinfantry name | role | division` : Manually assign infantry\n"
-        "`!removeinfantry name` : Remove from infantry\n"
-        "`!reassigninfantry name` : Reassign infantry\n"
-        "`!infantryslots` : View infantry formation\n"
-        "`!resetinfantry` : Reset infantry formation\n\n"
-
-        "**Scribes**\n"
-        "`!assignscribe name` : Add to scribes\n"
-        "`!manualscribe name | role | order` : Manually assign scribe\n"
-        "`!removescribe name` : Remove from scribes\n"
-        "`!reassignscribe name` : Reassign scribe\n"
-        "`!scribeslots` : View scribe formation\n"
-        "`!resetscribes` : Reset scribe formation\n\n"
-
-        "**Healers**\n"
-        "`!assignhealer name` : Add to healers\n"
-        "`!manualhealer name | role | circle` : Manually assign healer\n"
-        "`!removehealer name` : Remove from healers\n"
-        "`!reassignhealer name` : Reassign healer\n"
-        "`!healerslots` : View healer formation\n"
-        "`!resethealers` : Reset healer formation\n\n"
-
-        "**Roster + Lookup**\n"
-        "`!allcharacters` : View all characters\n"
-        "`!roster` : View all characters\n"
-        "`!rpcast` : View all characters\n"
-        "`!allcharacters simple` : Names only\n"
-        "`!allcharacters riders` : Riders only\n"
-        "`!allcharacters infantry` : Infantry only\n"
-        "`!allcharacters scribes` : Scribes only\n"
-        "`!allcharacters healers` : Healers only\n"
-        "`!whois character name` : View character details\n"
-        "`!whereis character name` : View character details\n"
-        "`!lookupcharacter character name` : View character details\n\n"
-
-        "**Combat + Tracking**\n"
-        "`!fight name1, name2` : Roll a fight\n"
-        "`!fight name1/name2` : Alternate fight format\n"
-        "`!fullfight name1, name2` : RP fight scene\n"
-        "`!fightlog name` : View fight history\n"
-        "`!fightrecord name` : View fight history\n"
-        "`!record name` : View fight history\n"
-        "`!fights name` : View fight history\n"
-        "`!masterboard` : View all fighters\n"
-        "`!clearfights name` : Clear one record\n"
-        "`!clearallfights` : Clear all records\n\n"
-
-        "**Mat System**\n"
-        "`!activemats` : Show active rider and infantry fighters\n"
-        "`!matpairs` : Randomly pair fighters\n"
-        "`!matchallenge` : Randomly pair fighters\n"
-        "`!mats` : Randomly pair fighters\n\n"
-
-        "**Gauntlet**\n"
-        "`!gauntlet character name` : Run gauntlet\n"
-        "`!gauntlethazard` : Generate next gauntlet obstacle\n"
-        "`!gauntletaction character name` : Quick gauntlet action\n"
-        "`!gauntletinjury` : Random gauntlet injury/consequence\n"
-        "`!gauntletoutcome` : Random gauntlet outcome\n\n"
-
-        "**Randomizing Commands**\n"
-        "`!createcharacter` : Randomize character\n"
-        "`!character` : Randomize character\n"
-        "`!oc` : Randomize character\n"
-        "`!makecharacter` : Randomize character\n"
-        "`!createcharacter riders` : Randomize rider\n"
-        "`!createcharacter infantry` : Randomize infantry\n"
-        "`!createcharacter scribes` : Randomize scribe\n"
-        "`!createcharacter healers` : Randomize healer\n"
-        "`!charhelp` : Character generator help\n"
-        "`!threshing` : Random dragon color + tail\n"
-        "`!signet` : Random signet\n"
-        "`!dragonspeak` : Random dragon reaction\n"
-        "`!dragonaction` : Random dragon action\n"
-        "`!infantry` : Random infantry specialty\n"
-        "`!scribe` : Random scribe specialty\n"
-        "`!healer` : Random healer discipline\n\n"
-
-        "**Dice**\n"
-        "`!roll d20` : Roll dice\n"
-        "`!roll 2d6+3` : Advanced roll\n"
-        "`!d4` : Roll d4\n"
-        "`!d6` : Roll d6\n"
-        "`!d8` : Roll d8\n"
-        "`!d10` : Roll d10\n"
-        "`!d12` : Roll d12\n"
-        "`!d20` : Roll d20\n"
-        "`!d100` : Roll d100\n\n"
-
-        "**Admin**\n"
-        "`!hardreset` : Reset EVERYTHING (admin only)\n\n"
-
-        "**Other**\n"
-        "Mention the bot : Random in-character response\n\n"
-        "Use character names for most commands."
-    )
-
-    for chunk in split_long_message(help_text):
+    for chunk in split_long_message(build_help_text()):
         await ctx.send(chunk)
-
-
-# -----------------------------
-# SLASH COMMAND CHOICES
-# -----------------------------
-RIDER_ROLE_CHOICES = [
-    app_commands.Choice(name="Wingleader", value="Wingleader"),
-    app_commands.Choice(name="Wing Executive Officer", value="Wing Executive Officer"),
-    app_commands.Choice(name="Section Leader", value="Section Leader"),
-    app_commands.Choice(name="Section Executive Officer", value="Section Executive Officer"),
-    app_commands.Choice(name="Squad Leader", value="Squad Leader"),
-    app_commands.Choice(name="Executive Squad Leader", value="Executive Squad Leader"),
-    app_commands.Choice(name="Cadet", value="Cadet"),
-]
-
-WING_CHOICES = [
-    app_commands.Choice(name="First Wing", value="First Wing"),
-    app_commands.Choice(name="Second Wing", value="Second Wing"),
-    app_commands.Choice(name="Third Wing", value="Third Wing"),
-    app_commands.Choice(name="Fourth Wing", value="Fourth Wing"),
-]
-
-RIDER_SECTION_CHOICES = [
-    app_commands.Choice(name="Flame Section", value="Flame Section"),
-    app_commands.Choice(name="Claw Section", value="Claw Section"),
-    app_commands.Choice(name="Tail Section", value="Tail Section"),
-]
-
-SQUAD_CHOICES = [
-    app_commands.Choice(name="First Squad", value="First Squad"),
-]
-
-INFANTRY_ROLE_CHOICES = [
-    app_commands.Choice(name="High Commander", value="High Commander"),
-    app_commands.Choice(name="Commander", value="Commander"),
-    app_commands.Choice(name="Captain", value="Captain"),
-    app_commands.Choice(name="Sergeant", value="Sergeant"),
-    app_commands.Choice(name="Corporal", value="Corporal"),
-    app_commands.Choice(name="Soldier", value="Soldier"),
-    app_commands.Choice(name="Cadet", value="Cadet"),
-]
-
-INFANTRY_DIVISION_CHOICES = [
-    app_commands.Choice(name="First Division", value="First Division"),
-    app_commands.Choice(name="Second Division", value="Second Division"),
-    app_commands.Choice(name="Third Division", value="Third Division"),
-    app_commands.Choice(name="Fourth Division", value="Fourth Division"),
-]
-
-SCRIBE_ROLE_CHOICES = [
-    app_commands.Choice(name="Grand Maester", value="Grand Maester"),
-    app_commands.Choice(name="Head Archivist", value="Head Archivist"),
-    app_commands.Choice(name="Master Scholar", value="Master Scholar"),
-    app_commands.Choice(name="Curator", value="Curator"),
-    app_commands.Choice(name="Archivist", value="Archivist"),
-    app_commands.Choice(name="Senior Scribe", value="Senior Scribe"),
-    app_commands.Choice(name="Scribe", value="Scribe"),
-]
-
-SCRIBE_ORDER_CHOICES = [
-    app_commands.Choice(name="First Order", value="First Order"),
-    app_commands.Choice(name="Second Order", value="Second Order"),
-    app_commands.Choice(name="Third Order", value="Third Order"),
-    app_commands.Choice(name="Fourth Order", value="Fourth Order"),
-]
-
-HEALER_ROLE_CHOICES = [
-    app_commands.Choice(name="Arch Healer", value="Arch Healer"),
-    app_commands.Choice(name="Healer", value="Healer"),
-    app_commands.Choice(name="Senior Practitioner", value="Senior Practitioner"),
-    app_commands.Choice(name="Practitioner", value="Practitioner"),
-    app_commands.Choice(name="Medic", value="Medic"),
-    app_commands.Choice(name="Acolyte", value="Acolyte"),
-    app_commands.Choice(name="Trainee", value="Trainee"),
-]
-
-HEALER_CIRCLE_CHOICES = [
-    app_commands.Choice(name="First Circle", value="First Circle"),
-    app_commands.Choice(name="Second Circle", value="Second Circle"),
-    app_commands.Choice(name="Third Circle", value="Third Circle"),
-    app_commands.Choice(name="Fourth Circle", value="Fourth Circle"),
-]
-
-
-@bot.tree.command(name="manualassign", description="Manually assign a rider with dropdown choices.")
-@app_commands.describe(
-    name="Character name",
-    role="Rider role",
-    wing="Wing",
-    section="Section, if needed",
-    squad="Squad, if needed"
-)
-@app_commands.choices(
-    role=RIDER_ROLE_CHOICES,
-    wing=WING_CHOICES,
-    section=RIDER_SECTION_CHOICES,
-    squad=SQUAD_CHOICES
-)
-async def slash_manualassign(
-    interaction: discord.Interaction,
-    name: str,
-    role: app_commands.Choice[str],
-    wing: app_commands.Choice[str],
-    section: app_commands.Choice[str] | None = None,
-    squad: app_commands.Choice[str] | None = None
-):
-    global rider_data
-
-    role_value = role.value
-    wing_value = wing.value
-    section_value = section.value if section else None
-    squad_value = squad.value if squad else None
-
-    if find_existing_rider_assignment(rider_data, name):
-        await interaction.response.send_message(f"**{name}** is already assigned. Remove or reassign them first.")
-        return
-
-    error = manual_assign_rider_slot(rider_data, name, role_value, wing_value, section_value, squad_value)
-
-    if error:
-        await interaction.response.send_message(error)
-        return
-
-    save_json_file(RIDER_FILE, rider_data)
-    await interaction.response.send_message(format_manual_rider_assignment(name, role_value, wing_value, section_value, squad_value))
-
-
-@bot.tree.command(name="manualinfantry", description="Manually assign infantry with dropdown choices.")
-@app_commands.describe(
-    name="Character name",
-    role="Infantry role",
-    division="Division, if needed"
-)
-@app_commands.choices(
-    role=INFANTRY_ROLE_CHOICES,
-    division=INFANTRY_DIVISION_CHOICES
-)
-async def slash_manualinfantry(
-    interaction: discord.Interaction,
-    name: str,
-    role: app_commands.Choice[str],
-    division: app_commands.Choice[str] | None = None
-):
-    global infantry_data
-
-    role_value = role.value
-    division_value = division.value if division else None
-
-    if find_name_in_simple_structure(infantry_data, name, "Cadets"):
-        await interaction.response.send_message(f"**{name}** is already assigned in infantry.")
-        return
-
-    error = manual_assign_simple(
-        infantry_data,
-        name,
-        role_value,
-        division_value,
-        ["High Commander", "Commander"],
-        ["Captain", "Sergeant", "Corporal", "Soldier"],
-        "Cadet",
-        "Cadets"
-    )
-
-    if error:
-        await interaction.response.send_message(error)
-        return
-
-    save_json_file(INFANTRY_FILE, infantry_data)
-    await interaction.response.send_message(f"⚔️ **{name}** manually assigned as **{role_value}**.")
-
-
-@bot.tree.command(name="manualscribe", description="Manually assign a scribe with dropdown choices.")
-@app_commands.describe(
-    name="Character name",
-    role="Scribe role",
-    order="Order, if needed"
-)
-@app_commands.choices(
-    role=SCRIBE_ROLE_CHOICES,
-    order=SCRIBE_ORDER_CHOICES
-)
-async def slash_manualscribe(
-    interaction: discord.Interaction,
-    name: str,
-    role: app_commands.Choice[str],
-    order: app_commands.Choice[str] | None = None
-):
-    global scribe_data
-
-    role_value = role.value
-    order_value = order.value if order else None
-
-    if find_name_in_simple_structure(scribe_data, name, "Scribes"):
-        await interaction.response.send_message(f"**{name}** is already assigned in the scribes quadrant.")
-        return
-
-    error = manual_assign_simple(
-        scribe_data,
-        name,
-        role_value,
-        order_value,
-        ["Grand Maester", "Head Archivist"],
-        ["Master Scholar", "Curator", "Archivist", "Senior Scribe"],
-        "Scribe",
-        "Scribes"
-    )
-
-    if error:
-        await interaction.response.send_message(error)
-        return
-
-    save_json_file(SCRIBE_FILE, scribe_data)
-    await interaction.response.send_message(f"📚 **{name}** manually assigned as **{role_value}**.")
-
-
-@bot.tree.command(name="manualhealer", description="Manually assign a healer with dropdown choices.")
-@app_commands.describe(
-    name="Character name",
-    role="Healer role",
-    circle="Circle, if needed"
-)
-@app_commands.choices(
-    role=HEALER_ROLE_CHOICES,
-    circle=HEALER_CIRCLE_CHOICES
-)
-async def slash_manualhealer(
-    interaction: discord.Interaction,
-    name: str,
-    role: app_commands.Choice[str],
-    circle: app_commands.Choice[str] | None = None
-):
-    global healer_data
-
-    role_value = role.value
-    circle_value = circle.value if circle else None
-
-    if find_name_in_simple_structure(healer_data, name, "Trainees"):
-        await interaction.response.send_message(f"**{name}** is already assigned in healers.")
-        return
-
-    error = manual_assign_simple(
-        healer_data,
-        name,
-        role_value,
-        circle_value,
-        ["Arch Healer", "Healer"],
-        ["Senior Practitioner", "Practitioner", "Medic", "Acolyte"],
-        "Trainee",
-        "Trainees"
-    )
-
-    if error:
-        await interaction.response.send_message(error)
-        return
-
-    save_json_file(HEALER_FILE, healer_data)
-    await interaction.response.send_message(f"🌿 **{name}** manually assigned as **{role_value}**.")
-
-
-
-# -----------------------------
-# EXTRA SLASH COMMANDS
-# -----------------------------
-CREATE_CHARACTER_CHOICES = [
-    app_commands.Choice(name="Any quadrant", value="any"),
-    app_commands.Choice(name="Riders", value="riders"),
-    app_commands.Choice(name="Infantry", value="infantry"),
-    app_commands.Choice(name="Scribes", value="scribes"),
-    app_commands.Choice(name="Healers", value="healers"),
-]
-
-
-@bot.tree.command(name="createcharacter", description="Randomize a character and optionally choose their quadrant.")
-@app_commands.describe(quadrant="Choose a quadrant, or Any quadrant for fully random.")
-@app_commands.choices(quadrant=CREATE_CHARACTER_CHOICES)
-async def slash_createcharacter(
-    interaction: discord.Interaction,
-    quadrant: app_commands.Choice[str] | None = None
-):
-    quadrant_value = None
-    if quadrant and quadrant.value != "any":
-        quadrant_value = quadrant.value
-
-    try:
-        profile = create_character_profile(quadrant_value)
-    except RuntimeError as e:
-        await interaction.response.send_message(f"**Character creation failed:** {e}")
-        return
-
-    chunks = split_long_message(profile)
-    await interaction.response.send_message(chunks[0])
-
-    for chunk in chunks[1:]:
-        await interaction.followup.send(chunk)
-
-
-@bot.tree.command(name="fight", description="Roll a fight between two characters.")
-@app_commands.describe(
-    name_one="First character name",
-    name_two="Second character name"
-)
-async def slash_fight(
-    interaction: discord.Interaction,
-    name_one: str,
-    name_two: str
-):
-    global fight_records
-
-    if normalize_name(name_one) == normalize_name(name_two):
-        await interaction.response.send_message("A character cannot fight themselves.")
-        return
-
-    roll_one = random.randint(1, 20)
-    roll_two = random.randint(1, 20)
-
-    if roll_one > roll_two:
-        result_text = f"**Winner:** {name_one}"
-        outcome_one = "win"
-        outcome_two = "loss"
-    elif roll_two > roll_one:
-        result_text = f"**Winner:** {name_two}"
-        outcome_one = "loss"
-        outcome_two = "win"
-    else:
-        result_text = "**Result:** Draw"
-        outcome_one = "draw"
-        outcome_two = "draw"
-
-    record_fight_result(name_one, name_two, roll_one, roll_two, outcome_one)
-    record_fight_result(name_two, name_one, roll_two, roll_one, outcome_two)
-    save_json_file(FIGHT_FILE, fight_records)
-
-    await interaction.response.send_message(
-        f"**Mat Challenge**\n"
-        f"{name_one}: **{roll_one}**\n"
-        f"{name_two}: **{roll_two}**\n"
-        f"{result_text}"
-    )
-
-
-@bot.tree.command(name="fullfight", description="Roll a fight and generate a short fight scene.")
-@app_commands.describe(
-    name_one="First character name",
-    name_two="Second character name"
-)
-async def slash_fullfight(
-    interaction: discord.Interaction,
-    name_one: str,
-    name_two: str
-):
-    global fight_records
-
-    if normalize_name(name_one) == normalize_name(name_two):
-        await interaction.response.send_message("A character cannot fight themselves.")
-        return
-
-    roll_one = random.randint(1, 20)
-    roll_two = random.randint(1, 20)
-
-    if roll_one > roll_two:
-        winner = name_one
-        outcome_one = "win"
-        outcome_two = "loss"
-    elif roll_two > roll_one:
-        winner = name_two
-        outcome_one = "loss"
-        outcome_two = "win"
-    else:
-        winner = None
-        outcome_one = "draw"
-        outcome_two = "draw"
-
-    record_fight_result(name_one, name_two, roll_one, roll_two, outcome_one)
-    record_fight_result(name_two, name_one, roll_two, roll_one, outcome_two)
-    save_json_file(FIGHT_FILE, fight_records)
-
-    scene = build_fullfight_scene(name_one, roll_one, name_two, roll_two, winner)
-    await interaction.response.send_message(f"**Full Mat Challenge**\n{scene}")
 
 # -----------------------------
 # RUN BOT
