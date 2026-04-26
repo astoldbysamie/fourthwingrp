@@ -2398,26 +2398,40 @@ async def activemats(ctx):
         await ctx.send(chunk)
 
 
-@bot.command(name="matpairs", aliases=["matchallenge", "mats"])
-async def matpairs(ctx):
-    active_names = collect_active_mat_characters()
+@bot.command(name="matchallenge", aliases=["mats"])
+async def matchallenge(ctx):
+    active = get_all_active_characters()
 
-    if len(active_names) < 2:
-        await ctx.send("Not enough active rider and infantry characters to make mat pairings.")
+    # only include riders + infantry
+    pool = [
+        info["name"]
+        for info in active.values()
+        if info["quadrant"] in ["riders", "infantry"]
+    ]
+
+    if len(pool) < 2:
+        await ctx.send("Not enough participants for mat pairings.")
         return
 
-    pairs, bye = make_mat_pairs(active_names)
+    random.shuffle(pool)
+
+    pairs = []
+    while len(pool) >= 2:
+        p1 = pool.pop()
+        p2 = pool.pop()
+        pairs.append((p1, p2))
+
+    leftover = pool[0] if pool else None
+
     lines = ["**Mat Challenge Pairings**"]
 
-    for index, (first, second, challenge) in enumerate(pairs, start=1):
-        lines.append(f"{index}. **{first}** vs **{second}** : {challenge}")
+    for p1, p2 in pairs:
+        lines.append(f"• {p1} vs {p2}")
 
-    if bye:
-        lines.append("")
-        lines.append(f"**Unpaired this round:** {bye}")
+    if leftover:
+        lines.append(f"\n• {leftover} has no partner this round")
 
-    for chunk in split_long_message("\n".join(lines)):
-        await ctx.send(chunk)
+    await ctx.send("\n".join(lines))
 
 
 # -----------------------------
@@ -2689,24 +2703,17 @@ async def rphelp(ctx):
         "**Roster + Lookup**\n"
         "`!allcharacters` : View all characters\n"
         "`!roster` : View all characters\n"
-        "`!rpcast` : View all characters\n"
         "`!allcharacters simple` : Names only\n"
         "`!allcharacters riders` : Riders only\n"
         "`!allcharacters infantry` : Infantry only\n"
         "`!allcharacters scribes` : Scribes only\n"
-        "`!allcharacters healers` : Healers only\n"
-        "`!whois character name` : View character details\n"
-        "`!whereis character name` : View character details\n"
-        "`!lookupcharacter character name` : View character details\n\n"
+        "`!allcharacters healers` : Healers only\n\n"
 
         "**Combat + Tracking**\n"
         "`!fight name1, name2` : Roll a fight\n"
         "`!fight name1/name2` : Alternate fight format\n"
         "`!fullfight name1, name2` : RP fight scene\n"
         "`!fightlog name` : View fight history\n"
-        "`!fightrecord name` : View fight history\n"
-        "`!record name` : View fight history\n"
-        "`!fights name` : View fight history\n"
         "`!masterboard` : View all fighters\n"
         "`!clearfights name` : Clear one record\n"
         "`!clearallfights` : Clear all records\n\n"
@@ -2726,9 +2733,6 @@ async def rphelp(ctx):
 
         "**Randomizing Commands**\n"
         "`!createcharacter` : Randomize character\n"
-        "`!character` : Randomize character\n"
-        "`!oc` : Randomize character\n"
-        "`!makecharacter` : Randomize character\n"
         "`!createcharacter riders` : Randomize rider\n"
         "`!createcharacter infantry` : Randomize infantry\n"
         "`!createcharacter scribes` : Randomize scribe\n"
