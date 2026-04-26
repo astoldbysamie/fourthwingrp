@@ -2199,22 +2199,83 @@ async def slash_clearallfights(interaction: discord.Interaction):
 # -----------------------------
 def build_slash_help_text():
     return (
-        "📖 **Basgiath Slash Command Guide**\n\n"
-        "**Formations**\n"
-        "`/assignrider`, `/manualassign`, `/removerider`, `/reassignrider`, `/riderslots`, `/resetriders`\n"
-        "`/assigninfantry`, `/manualinfantry`, `/removeinfantry`, `/reassigninfantry`, `/infantryslots`, `/resetinfantry`\n"
-        "`/assignscribe`, `/manualscribe`, `/removescribe`, `/reassignscribe`, `/scribeslots`, `/resetscribes`\n"
-        "`/assignhealer`, `/manualhealer`, `/removehealer`, `/reassignhealer`, `/healerslots`, `/resethealers`\n\n"
-        "**Characters**\n"
-        "`/createcharacter` has a dropdown for Any, Riders, Infantry, Scribes, or Healers.\n"
-        "`/roster` has a filter dropdown. `/whois` looks up one character.\n\n"
-        "**Fight + Mat**\n"
-        "`/fight`, `/fullfight`, `/fightlog`, `/masterboard`, `/activemats`, `/matpairs`, `/clearfights`, `/clearallfights`\n\n"
-        "**Gauntlet**\n"
-        "`/gauntlet`, `/gauntlethazard`, `/gauntletaction`, `/gauntletinjury`, `/gauntletoutcome`\n\n"
-        "**Random + Dice**\n"
-        "`/threshing`, `/signet`, `/dragonspeak`, `/dragonaction`, `/infantry`, `/scribe`, `/healer`, `/random`, `/roll`, `/die`\n\n"
-        "Most dropdown-friendly commands now use dropdowns. Names are typed so you can use any character name."
+        📖 **Basgiath Command Guide**
+
+━━━━━━━━━━━━━━━━━━━
+🎲 **DICE + RANDOM ROLLS**
+━━━━━━━━━━━━━━━━━━━
+`/roll` → Roll any standard dice combo
+`/d4` → Roll a d4
+`/d6` → Roll a d6
+`/d8` → Roll a d8
+`/d10` → Roll a d10
+`/d12` → Roll a d12
+`/d20` → Roll a d20
+`/d100` → Roll a d100
+
+━━━━━━━━━━━━━━━━━━━
+🐉 **RIDERS**
+━━━━━━━━━━━━━━━━━━━
+`/threshing` → Random dragon color + tail
+`/signet` → Random signet manifestation
+`/dragonspeak` → Random dragon approval/disapproval
+`/dragonaction` → Random dragon action
+
+`/assignrider` → Randomly assign a rider
+`/manualassign` → Manually assign a rider with dropdowns
+`/removerider` → Remove a rider from formation
+`/reassignrider` → Randomly reassign a rider
+`/riderslots` → Show taken rider slots
+`/resetriders` → Reset all rider assignments
+
+━━━━━━━━━━━━━━━━━━━
+⚔️ **INFANTRY**
+━━━━━━━━━━━━━━━━━━━
+`/infantry` → Random infantry specialty
+`/assigninfantry` → Randomly assign infantry
+`/manualinfantry` → Manually assign infantry with dropdowns
+`/removeinfantry` → Remove infantry from formation
+`/reassigninfantry` → Randomly reassign infantry
+`/infantryslots` → Show taken infantry slots
+`/resetinfantry` → Reset infantry assignments
+
+━━━━━━━━━━━━━━━━━━━
+📚 **SCRIBES**
+━━━━━━━━━━━━━━━━━━━
+`/scribe` → Random scribe specialty
+`/assignscribe` → Randomly assign scribe
+`/manualscribe` → Manually assign scribe with dropdowns
+`/removescribe` → Remove scribe from formation
+`/reassignscribe` → Randomly reassign scribe
+`/scribeslots` → Show taken scribe slots
+`/resetscribes` → Reset scribe assignments
+
+━━━━━━━━━━━━━━━━━━━
+🌿 **HEALERS**
+━━━━━━━━━━━━━━━━━━━
+`/healer` → Random healer discipline
+`/assignhealer` → Randomly assign healer
+`/manualhealer` → Manually assign healer with dropdowns
+`/removehealer` → Remove healer from formation
+`/reassignhealer` → Randomly reassign healer
+`/healerslots` → Show taken healer slots
+`/resethealers` → Reset healer assignments
+
+━━━━━━━━━━━━━━━━━━━
+🧍 **CHARACTERS**
+━━━━━━━━━━━━━━━━━━━
+`/createcharacter` → Randomize a character
+Choose: Any, Riders, Infantry, Scribes, or Healers
+
+━━━━━━━━━━━━━━━━━━━
+🥊 **FIGHTS**
+━━━━━━━━━━━━━━━━━━━
+`/fight` → Roll a fight between two characters
+`/fightlog` → Show one character’s fight record
+`/masterboard` → Show all active characters and fight records
+`/clearfights` → Clear one character’s fight history
+`/clearallfights` → Clear every fight record
+    
     )
 
 @bot.tree.command(name="help", description="Show the Basgiath command guide")
