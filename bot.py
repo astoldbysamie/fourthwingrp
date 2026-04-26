@@ -2194,12 +2194,305 @@ async def slash_clearallfights(interaction: discord.Interaction):
     save_json_file(FIGHT_FILE, fight_records)
     await interaction.response.send_message("🔥 All fight history has been wiped.")
 
+
+# -----------------------------
+# BUTTON CONTROL PANEL
+# -----------------------------
+class CharacterRandomizeView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=180)
+
+    async def randomize(self, interaction: discord.Interaction, quadrant_value: str | None):
+        try:
+            profile = create_character_profile(quadrant_value)
+        except RuntimeError as e:
+            await interaction.response.send_message(f"**Character creation failed:** {e}", ephemeral=True)
+            return
+        await send_chunks_interaction(interaction, profile)
+
+    @discord.ui.button(label="Any", style=discord.ButtonStyle.primary)
+    async def any_character(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.randomize(interaction, None)
+
+    @discord.ui.button(label="Rider", style=discord.ButtonStyle.secondary)
+    async def rider(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.randomize(interaction, "riders")
+
+    @discord.ui.button(label="Infantry", style=discord.ButtonStyle.secondary)
+    async def infantry(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.randomize(interaction, "infantry")
+
+    @discord.ui.button(label="Scribe", style=discord.ButtonStyle.secondary)
+    async def scribe(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.randomize(interaction, "scribes")
+
+    @discord.ui.button(label="Healer", style=discord.ButtonStyle.secondary)
+    async def healer(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.randomize(interaction, "healers")
+
+
+class ManualNameModal(discord.ui.Modal):
+    def __init__(self, quadrant: str, selections: dict[str, str | None]):
+        super().__init__(title=f"Manual Assign: {quadrant.title()}")
+        self.quadrant = quadrant
+        self.selections = selections
+        self.name_input = discord.ui.TextInput(label="Character name", placeholder="Example: Mira Damaris", required=True, max_length=100)
+        self.add_item(self.name_input)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        name = str(self.name_input.value).strip()
+        if not name:
+            await interaction.response.send_message("Please enter a character name.", ephemeral=True)
+            return
+
+        global rider_data, infantry_data, scribe_data, healer_data
+
+        if self.quadrant == "rider":
+            role = self.selections.get("role")
+            wing = self.selections.get("wing")
+            section = self.selections.get("section")
+            squad = self.selections.get("squad")
+            if not role or not wing:
+                await interaction.response.send_message("Pick at least a role and wing first.", ephemeral=True)
+                return
+            if find_existing_rider_assignment(rider_data, name):
+                await interaction.response.send_message(f"**{name}** is already assigned. Remove or reassign them first.", ephemeral=True)
+                return
+            error = manual_assign_rider_slot(rider_data, name, role, wing, section, squad)
+            if error:
+                await interaction.response.send_message(error, ephemeral=True)
+                return
+            save_json_file(RIDER_FILE, rider_data)
+            await interaction.response.send_message(format_manual_rider_assignment(name, role, wing, section, squad))
+            return
+
+        if self.quadrant == "infantry":
+            role = self.selections.get("role")
+            division = self.selections.get("division")
+            if not role:
+                await interaction.response.send_message("Pick a role first.", ephemeral=True)
+                return
+            if find_name_in_simple_structure(infantry_data, name, "Cadets"):
+                await interaction.response.send_message(f"**{name}** is already assigned in infantry.", ephemeral=True)
+                return
+            error = manual_assign_simple(infantry_data, name, role, division, ["High Commander", "Commander"], ["Captain", "Sergeant", "Corporal", "Soldier"], "Cadet", "Cadets")
+            if error:
+                await interaction.response.send_message(error, ephemeral=True)
+                return
+            save_json_file(INFANTRY_FILE, infantry_data)
+            await interaction.response.send_message(f"⚔️ **{name}** manually assigned as **{role}**.")
+            return
+
+        if self.quadrant == "scribe":
+            role = self.selections.get("role")
+            order = self.selections.get("order")
+            if not role:
+                await interaction.response.send_message("Pick a role first.", ephemeral=True)
+                return
+            if find_name_in_simple_structure(scribe_data, name, "Scribes"):
+                await interaction.response.send_message(f"**{name}** is already assigned in the scribes quadrant.", ephemeral=True)
+                return
+            error = manual_assign_simple(scribe_data, name, role, order, ["Grand Maester", "Head Archivist"], ["Master Scholar", "Curator", "Archivist", "Senior Scribe"], "Scribe", "Scribes")
+            if error:
+                await interaction.response.send_message(error, ephemeral=True)
+                return
+            save_json_file(SCRIBE_FILE, scribe_data)
+            await interaction.response.send_message(f"📚 **{name}** manually assigned as **{role}**.")
+            return
+
+        if self.quadrant == "healer":
+            role = self.selections.get("role")
+            circle = self.selections.get("circle")
+            if not role:
+                await interaction.response.send_message("Pick a role first.", ephemeral=True)
+                return
+            if find_name_in_simple_structure(healer_data, name, "Trainees"):
+                await interaction.response.send_message(f"**{name}** is already assigned in healers.", ephemeral=True)
+                return
+            error = manual_assign_simple(healer_data, name, role, circle, ["Arch Healer", "Healer"], ["Senior Practitioner", "Practitioner", "Medic", "Acolyte"], "Trainee", "Trainees")
+            if error:
+                await interaction.response.send_message(error, ephemeral=True)
+                return
+            save_json_file(HEALER_FILE, healer_data)
+            await interaction.response.send_message(f"🌿 **{name}** manually assigned as **{role}**.")
+            return
+
+
+class ManualAssignView(discord.ui.View):
+    def __init__(self, quadrant: str):
+        super().__init__(timeout=240)
+        self.quadrant = quadrant
+        self.selections: dict[str, str | None] = {}
+
+        if quadrant == "rider":
+            self.add_item(SimpleSelect("role", "Choose rider role", [c.name for c in RIDER_ROLE_CHOICES]))
+            self.add_item(SimpleSelect("wing", "Choose wing", [c.name for c in WING_CHOICES]))
+            self.add_item(SimpleSelect("section", "Choose section if needed", [c.name for c in SECTION_CHOICES], required=False))
+            self.add_item(SimpleSelect("squad", "Choose squad if needed", [c.name for c in SQUAD_CHOICES], required=False))
+        elif quadrant == "infantry":
+            self.add_item(SimpleSelect("role", "Choose infantry role", [c.name for c in INFANTRY_ROLE_CHOICES]))
+            self.add_item(SimpleSelect("division", "Choose division if needed", [c.name for c in DIVISION_CHOICES], required=False))
+        elif quadrant == "scribe":
+            self.add_item(SimpleSelect("role", "Choose scribe role", [c.name for c in SCRIBE_ROLE_CHOICES]))
+            self.add_item(SimpleSelect("order", "Choose order if needed", [c.name for c in ORDER_CHOICES], required=False))
+        elif quadrant == "healer":
+            self.add_item(SimpleSelect("role", "Choose healer role", [c.name for c in HEALER_ROLE_CHOICES]))
+            self.add_item(SimpleSelect("circle", "Choose circle if needed", [c.name for c in CIRCLE_CHOICES], required=False))
+
+    @discord.ui.button(label="Enter Character Name", style=discord.ButtonStyle.success, row=4)
+    async def enter_name(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(ManualNameModal(self.quadrant, self.selections))
+
+
+class SimpleSelect(discord.ui.Select):
+    def __init__(self, key: str, placeholder: str, values: list[str], required: bool = True):
+        options = [discord.SelectOption(label=value, value=value) for value in values]
+        if not required:
+            options.insert(0, discord.SelectOption(label="Skip / Not needed", value=""))
+        super().__init__(placeholder=placeholder, min_values=1, max_values=1, options=options)
+        self.key = key
+
+    async def callback(self, interaction: discord.Interaction):
+        if isinstance(self.view, ManualAssignView):
+            value = self.values[0] or None
+            self.view.selections[self.key] = value
+            await interaction.response.defer()
+
+
+class ManualAssignStartView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=180)
+
+    async def open_manual(self, interaction: discord.Interaction, quadrant: str):
+        await interaction.response.send_message(
+            f"**Manual Assign: {quadrant.title()}**\nPick the set options below, then press **Enter Character Name**.",
+            view=ManualAssignView(quadrant),
+            ephemeral=True
+        )
+
+    @discord.ui.button(label="Rider", style=discord.ButtonStyle.primary)
+    async def rider(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.open_manual(interaction, "rider")
+
+    @discord.ui.button(label="Infantry", style=discord.ButtonStyle.primary)
+    async def infantry(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.open_manual(interaction, "infantry")
+
+    @discord.ui.button(label="Scribe", style=discord.ButtonStyle.primary)
+    async def scribe(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.open_manual(interaction, "scribe")
+
+    @discord.ui.button(label="Healer", style=discord.ButtonStyle.primary)
+    async def healer(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.open_manual(interaction, "healer")
+
+
+class UtilityPanelView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=180)
+
+    @discord.ui.button(label="Roster", style=discord.ButtonStyle.secondary)
+    async def roster(self, interaction: discord.Interaction, button: discord.ui.Button):
+        active = get_all_active_characters()
+        if not active:
+            await interaction.response.send_message("No active characters found.", ephemeral=True)
+            return
+        lines = ["**All Active Characters**"]
+        current_quadrant = None
+        for info in sorted(active.values(), key=lambda x: (x["quadrant"], x["name"].lower())):
+            quadrant = info["quadrant"].title()
+            if quadrant != current_quadrant:
+                current_quadrant = quadrant
+                lines.append(f"\n**{quadrant}**")
+            lines.append(f"• **{info['name']}** — {info['role']} | {info['assignment']}")
+        await send_chunks_interaction(interaction, "\n".join(lines), ephemeral=True)
+
+    @discord.ui.button(label="Mat Pairs", style=discord.ButtonStyle.secondary)
+    async def mat_pairs(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await slash_matpairs(interaction)
+
+    @discord.ui.button(label="Masterboard", style=discord.ButtonStyle.secondary)
+    async def masterboard(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await send_chunks_interaction(interaction, format_masterboard(), ephemeral=True)
+
+    @discord.ui.button(label="Help Guide", style=discord.ButtonStyle.secondary)
+    async def help_guide(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await send_chunks_interaction(interaction, build_slash_help_text(), ephemeral=True)
+
+
+class RandomizerPanelView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=180)
+
+    @discord.ui.button(label="Threshing", style=discord.ButtonStyle.secondary)
+    async def threshing(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await slash_threshing(interaction)
+
+    @discord.ui.button(label="Signet", style=discord.ButtonStyle.secondary)
+    async def signet(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await slash_signet(interaction)
+
+    @discord.ui.button(label="Dragon Speak", style=discord.ButtonStyle.secondary)
+    async def dragon_speak(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await slash_dragonspeak(interaction)
+
+    @discord.ui.button(label="Dragon Action", style=discord.ButtonStyle.secondary)
+    async def dragon_action(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await slash_dragonaction(interaction)
+
+    @discord.ui.button(label="Infantry Specialty", style=discord.ButtonStyle.secondary)
+    async def infantry_specialty(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await slash_infantry(interaction)
+
+    @discord.ui.button(label="Scribe Specialty", style=discord.ButtonStyle.secondary)
+    async def scribe_specialty(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await slash_scribe(interaction)
+
+    @discord.ui.button(label="Healer Discipline", style=discord.ButtonStyle.secondary)
+    async def healer_discipline(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await slash_healer(interaction)
+
+
+class MainPanelView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=240)
+
+    @discord.ui.button(label="Manual Assign Character", style=discord.ButtonStyle.primary)
+    async def manual_assign(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message("**What quadrant are you manually assigning?**", view=ManualAssignStartView(), ephemeral=True)
+
+    @discord.ui.button(label="Randomize Character", style=discord.ButtonStyle.success)
+    async def randomize_character(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message("**What kind of character do you want to randomize?**", view=CharacterRandomizeView(), ephemeral=True)
+
+    @discord.ui.button(label="Randomizers", style=discord.ButtonStyle.secondary)
+    async def randomizers(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message("**Pick a randomizer.**", view=RandomizerPanelView(), ephemeral=True)
+
+    @discord.ui.button(label="Roster + Tools", style=discord.ButtonStyle.secondary)
+    async def tools(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message("**Pick a tool.**", view=UtilityPanelView(), ephemeral=True)
+
+    @discord.ui.button(label="Help Guide", style=discord.ButtonStyle.secondary)
+    async def help(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await send_chunks_interaction(interaction, build_slash_help_text(), ephemeral=True)
+
+
+@bot.tree.command(name="panel", description="Open the Basgiath button control panel")
+async def slash_panel(interaction: discord.Interaction):
+    await interaction.response.send_message(
+        "⚔️ **Basgiath Control Panel**\nWhat do you want to do?",
+        view=MainPanelView(),
+        ephemeral=True
+    )
+
 # -----------------------------
 # HELP + ADMIN
 # -----------------------------
 def build_slash_help_text():
     help_text = (
         "📖 **Basgiath Slash Command Guide**\n\n"
+        "`/panel` : Open button menu for manual assign, random characters, randomizers, roster, and help\n\n"
 
         "**Formations**\n\n"
 
