@@ -2686,13 +2686,10 @@ async def rphelp(ctx):
 
         "**Mat System**\n"
         "`!activemats` : Show active rider and infantry fighters\n"
-        "`!matchallenge` : Randomly pair fighters\n"
-        "`!mats` : Randomly pair fighters\n\n"
+        "`!matchallenge` : Randomly pair fighters\n\n"
 
         "**Gauntlet**\n"
-        "`!gauntlet character name` : Run gauntlet\n"
         "`!gauntlethazard` : Generate next gauntlet obstacle\n"
-        "`!gauntletaction character name` : Quick gauntlet action\n"
         "`!gauntletinjury` : Random gauntlet injury/consequence\n"
         "`!gauntletoutcome` : Random gauntlet outcome\n\n"
 
@@ -2705,10 +2702,9 @@ async def rphelp(ctx):
         "`!d20` : Roll d20\n"
         "`!d100` : Roll d100\n\n"
 
-        " **#Making a character** \n\n"
+        " ** Making a Character** \n\n"
   
         "**Roster + Lookup**\n"
-        "`!allcharacters` : View all characters\n"
         "`!roster` : View all characters\n"
         "`!allcharacters simple` : Names only\n"
         "`!allcharacters riders` : Riders only\n"
@@ -2722,7 +2718,6 @@ async def rphelp(ctx):
         "`!removerider name` : Remove rider\n"
         "`!reassignrider name` : Reassign rider\n"
         "`!riderslots` : View rider formation\n"
-        "`!resetriders` : Reset rider formation\n\n"
 
         "**Infantry**\n"
         "`!assigninfantry name` : Add to infantry\n"
@@ -2730,7 +2725,6 @@ async def rphelp(ctx):
         "`!removeinfantry name` : Remove from infantry\n"
         "`!reassigninfantry name` : Reassign infantry\n"
         "`!infantryslots` : View infantry formation\n"
-        "`!resetinfantry` : Reset infantry formation\n\n"
 
         "**Scribes**\n"
         "`!assignscribe name` : Add to scribes\n"
@@ -2738,7 +2732,6 @@ async def rphelp(ctx):
         "`!removescribe name` : Remove from scribes\n"
         "`!reassignscribe name` : Reassign scribe\n"
         "`!scribeslots` : View scribe formation\n"
-        "`!resetscribes` : Reset scribe formation\n\n"
 
         "**Healers**\n"
         "`!assignhealer name` : Add to healers\n"
@@ -2746,9 +2739,9 @@ async def rphelp(ctx):
         "`!removehealer name` : Remove from healers\n"
         "`!reassignhealer name` : Reassign healer\n"
         "`!healerslots` : View healer formation\n"
-        "`!resethealers` : Reset healer formation\n\n"
     
         "**Randomizing Commands**\n"
+        "> These are full characters! Good for NPCS"
         "`!charhelp` : Character generator help\n"
         "`!createcharacter` : Randomize character\n"
         "`!createcharacter riders` : Randomize rider\n"
