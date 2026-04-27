@@ -1644,6 +1644,12 @@ async def send_chunks_interaction(interaction: discord.Interaction, text: str, e
     for chunk in chunks:
         await interaction.followup.send(chunk, ephemeral=ephemeral)
 
+
+async def call_command(command_or_func, interaction: discord.Interaction, *args):
+    """Run a slash command callback safely from a button or modal."""
+    callback = getattr(command_or_func, "callback", command_or_func)
+    return await callback(interaction, *args)
+
 # -----------------------------
 # SLASH COMMANDS: RANDOM + DICE
 # -----------------------------
@@ -1722,19 +1728,19 @@ async def slash_signet(interaction: discord.Interaction):
 @app_commands.choices(kind=RANDOM_CHOICES)
 async def slash_random(interaction: discord.Interaction, kind: app_commands.Choice[str]):
     if kind.value == "threshing":
-        await slash_threshing(interaction)
+        await call_command(slash_threshing, interaction)
     elif kind.value == "signet":
-        await slash_signet(interaction)
+        await call_command(slash_signet, interaction)
     elif kind.value == "dragon_speak":
-        await slash_dragonspeak(interaction)
+        await call_command(slash_dragonspeak, interaction)
     elif kind.value == "dragon_action":
-        await slash_dragonaction(interaction)
+        await call_command(slash_dragonaction, interaction)
     elif kind.value == "infantry":
-        await slash_infantry(interaction)
+        await call_command(slash_infantry, interaction)
     elif kind.value == "scribe":
-        await slash_scribe(interaction)
+        await call_command(slash_scribe, interaction)
     else:
-        await slash_healer(interaction)
+        await call_command(slash_healer, interaction)
 
 @bot.tree.command(name="roll", description="Roll dice")
 @app_commands.describe(dice="Pick a die or type dice like 2d6+3")
@@ -2233,10 +2239,35 @@ async def slash_clearallfights(interaction: discord.Interaction):
 # -----------------------------
 # BUTTON CONTROL PANEL
 # -----------------------------
+
+class SafeView(discord.ui.View):
+    async def on_error(self, interaction: discord.Interaction, error: Exception, item) -> None:
+        print(f"Button error in {type(item).__name__}: {error}")
+        message = f"That button hit an error: `{type(error).__name__}: {error}`"
+        try:
+            if interaction.response.is_done():
+                await interaction.followup.send(message, ephemeral=True)
+            else:
+                await interaction.response.send_message(message, ephemeral=True)
+        except Exception as send_error:
+            print(f"Could not send button error message: {send_error}")
+
+class SafeModal(discord.ui.Modal):
+    async def on_error(self, interaction: discord.Interaction, error: Exception) -> None:
+        print(f"Modal error in {type(self).__name__}: {error}")
+        message = f"That form hit an error: `{type(error).__name__}: {error}`"
+        try:
+            if interaction.response.is_done():
+                await interaction.followup.send(message, ephemeral=True)
+            else:
+                await interaction.response.send_message(message, ephemeral=True)
+        except Exception as send_error:
+            print(f"Could not send modal error message: {send_error}")
+
 # -----------------------------
 # FULL BUTTON PANEL
 # -----------------------------
-class NameModal(discord.ui.Modal):
+class NameModal(SafeModal):
     def __init__(self, title: str, label: str, callback_func):
         super().__init__(title=title)
         self.callback_func = callback_func
@@ -2244,10 +2275,10 @@ class NameModal(discord.ui.Modal):
         self.add_item(self.name_input)
 
     async def on_submit(self, interaction: discord.Interaction):
-        await self.callback_func(interaction, str(self.name_input.value).strip())
+        await call_command(self.callback_func, interaction, str(self.name_input.value).strip())
 
 
-class TwoNameModal(discord.ui.Modal):
+class TwoNameModal(SafeModal):
     def __init__(self, title: str, callback_func):
         super().__init__(title=title)
         self.callback_func = callback_func
@@ -2257,20 +2288,20 @@ class TwoNameModal(discord.ui.Modal):
         self.add_item(self.name_two)
 
     async def on_submit(self, interaction: discord.Interaction):
-        await self.callback_func(interaction, str(self.name_one.value).strip(), str(self.name_two.value).strip())
+        await call_command(self.callback_func, interaction, str(self.name_one.value).strip(), str(self.name_two.value).strip())
 
 
-class DiceModal(discord.ui.Modal):
+class DiceModal(SafeModal):
     def __init__(self):
         super().__init__(title="Roll Dice")
         self.dice = discord.ui.TextInput(label="Dice", placeholder="d20 or 2d6+3", required=True, max_length=20)
         self.add_item(self.dice)
 
     async def on_submit(self, interaction: discord.Interaction):
-        await slash_roll(interaction, str(self.dice.value).strip())
+        await call_command(slash_roll, interaction, str(self.dice.value).strip())
 
 
-class ConfirmResetView(discord.ui.View):
+class ConfirmResetView(SafeView):
     def __init__(self, label: str, callback_func):
         super().__init__(timeout=60)
         self.label = label
@@ -2278,7 +2309,7 @@ class ConfirmResetView(discord.ui.View):
 
     @discord.ui.button(label="Yes, reset it", style=discord.ButtonStyle.danger)
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.callback_func(interaction)
+        await call_command(self.callback_func, interaction)
 
     @discord.ui.button(label="Cancel", style=discord.ButtonStyle.secondary)
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -2299,7 +2330,7 @@ class SimpleSelect(discord.ui.Select):
             await interaction.response.defer()
 
 
-class ManualNameModal(discord.ui.Modal):
+class ManualNameModal(SafeModal):
     def __init__(self, quadrant: str, selections: dict[str, str | None]):
         super().__init__(title=f"Manual Assign: {quadrant.title()}")
         self.quadrant = quadrant
@@ -2310,7 +2341,7 @@ class ManualNameModal(discord.ui.Modal):
     async def on_submit(self, interaction: discord.Interaction):
         name = str(self.name_input.value).strip()
         if self.quadrant == "rider":
-            await slash_manualassign(
+            await call_command(slash_manualassign, 
                 interaction,
                 name,
                 app_commands.Choice(name=self.selections.get("role"), value=self.selections.get("role")),
@@ -2319,21 +2350,21 @@ class ManualNameModal(discord.ui.Modal):
                 app_commands.Choice(name=self.selections.get("squad"), value=self.selections.get("squad")) if self.selections.get("squad") else None,
             )
         elif self.quadrant == "infantry":
-            await slash_manualinfantry(
+            await call_command(slash_manualinfantry, 
                 interaction,
                 name,
                 app_commands.Choice(name=self.selections.get("role"), value=self.selections.get("role")),
                 app_commands.Choice(name=self.selections.get("division"), value=self.selections.get("division")) if self.selections.get("division") else None,
             )
         elif self.quadrant == "scribe":
-            await slash_manualscribe(
+            await call_command(slash_manualscribe, 
                 interaction,
                 name,
                 app_commands.Choice(name=self.selections.get("role"), value=self.selections.get("role")),
                 app_commands.Choice(name=self.selections.get("order"), value=self.selections.get("order")) if self.selections.get("order") else None,
             )
         elif self.quadrant == "healer":
-            await slash_manualhealer(
+            await call_command(slash_manualhealer, 
                 interaction,
                 name,
                 app_commands.Choice(name=self.selections.get("role"), value=self.selections.get("role")),
@@ -2341,7 +2372,7 @@ class ManualNameModal(discord.ui.Modal):
             )
 
 
-class ManualAssignView(discord.ui.View):
+class ManualAssignView(SafeView):
     def __init__(self, quadrant: str):
         super().__init__(timeout=240)
         self.quadrant = quadrant
@@ -2371,13 +2402,13 @@ class ManualAssignView(discord.ui.View):
         await interaction.response.send_modal(ManualNameModal(self.quadrant, self.selections))
 
 
-class CharacterRandomizeView(discord.ui.View):
+class CharacterRandomizeView(SafeView):
     def __init__(self):
         super().__init__(timeout=180)
 
     async def randomize(self, interaction: discord.Interaction, quadrant_value: str | None):
         choice = app_commands.Choice(name=quadrant_value or "Any", value=quadrant_value or "any") if quadrant_value else None
-        await slash_createcharacter(interaction, choice)
+        await call_command(slash_createcharacter, interaction, choice)
 
     @discord.ui.button(label="Any", style=discord.ButtonStyle.primary)
     async def any_character(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -2400,22 +2431,24 @@ class CharacterRandomizeView(discord.ui.View):
         await self.randomize(interaction, "healers")
 
 
-class RosterLookupPanelView(discord.ui.View):
+class RosterLookupPanelView(SafeView):
     def __init__(self): super().__init__(timeout=240)
     @discord.ui.button(label="View Full Roster", style=discord.ButtonStyle.primary)
-    async def roster(self, interaction, button): await slash_roster(interaction, app_commands.Choice(name="All", value="all"))
+    async def roster(self, interaction, button): await call_command(slash_roster, interaction, app_commands.Choice(name="All", value="all"))
     @discord.ui.button(label="Names Only", style=discord.ButtonStyle.secondary)
+    async def simple(self, interaction, button): await call_command(slash_roster, interaction, app_commands.Choice(name="Simple", value="simple"))
+    @discord.ui.button(label="Look Up Character", style=discord.ButtonStyle.secondary)
     async def whois(self, interaction, button): await interaction.response.send_modal(NameModal("Character Lookup", "Character name", slash_whois))
     @discord.ui.button(label="Rider Formation", style=discord.ButtonStyle.secondary)
-    async def riderslots(self, interaction, button): await slash_riderslots(interaction)
+    async def riderslots(self, interaction, button): await call_command(slash_riderslots, interaction)
     @discord.ui.button(label="Infantry Formation", style=discord.ButtonStyle.secondary)
-    async def infantryslots(self, interaction, button): await slash_infantryslots(interaction)
+    async def infantryslots(self, interaction, button): await call_command(slash_infantryslots, interaction)
     @discord.ui.button(label="Scribe Formation", style=discord.ButtonStyle.secondary)
-    async def scribeslots(self, interaction, button): await slash_scribeslots(interaction)
+    async def scribeslots(self, interaction, button): await call_command(slash_scribeslots, interaction)
     @discord.ui.button(label="Healer Formation", style=discord.ButtonStyle.secondary)
-    async def healerslots(self, interaction, button): await slash_healerslots(interaction)
+    async def healerslots(self, interaction, button): await call_command(slash_healerslots, interaction)
 
-class ManualAssignCharacterPanelView(discord.ui.View):
+class ManualAssignCharacterPanelView(SafeView):
     def __init__(self): super().__init__(timeout=240)
     @discord.ui.button(label="Manual Assign Rider", style=discord.ButtonStyle.primary)
     async def rider(self, interaction, button): await interaction.response.send_message("**Manual Assign Rider**\nChoose role, wing, section, and squad if needed.", view=ManualAssignView("rider"), ephemeral=True)
@@ -2426,7 +2459,7 @@ class ManualAssignCharacterPanelView(discord.ui.View):
     @discord.ui.button(label="Manual Assign Healer", style=discord.ButtonStyle.primary)
     async def healer(self, interaction, button): await interaction.response.send_message("**Manual Assign Healer**\nChoose role and circle if needed.", view=ManualAssignView("healer"), ephemeral=True)
 
-class AssignFormationRolesPanelView(discord.ui.View):
+class AssignFormationRolesPanelView(SafeView):
     def __init__(self): super().__init__(timeout=240)
     @discord.ui.button(label="Add Rider", style=discord.ButtonStyle.primary)
     async def rider(self, interaction, button): await interaction.response.send_modal(NameModal("Assign Rider", "Character name", slash_assignrider))
@@ -2437,7 +2470,7 @@ class AssignFormationRolesPanelView(discord.ui.View):
     @discord.ui.button(label="Add Healer", style=discord.ButtonStyle.primary)
     async def healer(self, interaction, button): await interaction.response.send_modal(NameModal("Assign Healer", "Character name", slash_assignhealer))
 
-class ReassignCharactersPanelView(discord.ui.View):
+class ReassignCharactersPanelView(SafeView):
     def __init__(self): super().__init__(timeout=240)
     @discord.ui.button(label="Reassign Rider", style=discord.ButtonStyle.primary)
     async def rider(self, interaction, button): await interaction.response.send_modal(NameModal("Reassign Rider", "Character name", slash_reassignrider))
@@ -2448,18 +2481,18 @@ class ReassignCharactersPanelView(discord.ui.View):
     @discord.ui.button(label="Reassign Healer", style=discord.ButtonStyle.primary)
     async def healer(self, interaction, button): await interaction.response.send_modal(NameModal("Reassign Healer", "Character name", slash_reassignhealer))
 
-class SpecialtyDragonPanelView(discord.ui.View):
+class SpecialtyDragonPanelView(SafeView):
     def __init__(self): super().__init__(timeout=240)
     @discord.ui.button(label="Infantry Specialty", style=discord.ButtonStyle.primary)
-    async def infantry(self, interaction, button): await slash_infantry(interaction)
+    async def infantry(self, interaction, button): await call_command(slash_infantry, interaction)
     @discord.ui.button(label="Scribe Specialty", style=discord.ButtonStyle.primary)
-    async def scribe(self, interaction, button): await slash_scribe(interaction)
+    async def scribe(self, interaction, button): await call_command(slash_scribe, interaction)
     @discord.ui.button(label="Healer Discipline", style=discord.ButtonStyle.primary)
-    async def healer(self, interaction, button): await slash_healer(interaction)
+    async def healer(self, interaction, button): await call_command(slash_healer, interaction)
     @discord.ui.button(label="Dragon Color + Tail", style=discord.ButtonStyle.primary)
-    async def threshing(self, interaction, button): await slash_threshing(interaction)
+    async def threshing(self, interaction, button): await call_command(slash_threshing, interaction)
 
-class CombatPanelView(discord.ui.View):
+class CombatPanelView(SafeView):
     def __init__(self): super().__init__(timeout=240)
     @discord.ui.button(label="Fight", style=discord.ButtonStyle.success)
     async def fight(self, interaction, button): await interaction.response.send_modal(TwoNameModal("Roll Fight", slash_fight))
@@ -2468,59 +2501,59 @@ class CombatPanelView(discord.ui.View):
     @discord.ui.button(label="Fight Log", style=discord.ButtonStyle.secondary)
     async def fightlog(self, interaction, button): await interaction.response.send_modal(NameModal("Fight Log", "Character name", slash_fightlog))
     @discord.ui.button(label="Masterboard", style=discord.ButtonStyle.secondary)
-    async def masterboard(self, interaction, button): await slash_masterboard(interaction)
+    async def masterboard(self, interaction, button): await call_command(slash_masterboard, interaction)
     @discord.ui.button(label="Clear One Fight Record", style=discord.ButtonStyle.danger)
     async def clearone(self, interaction, button): await interaction.response.send_modal(NameModal("Clear Fight Record", "Character name", slash_clearfights))
     @discord.ui.button(label="Clear All Fight Records", style=discord.ButtonStyle.danger)
     async def clearall(self, interaction, button): await interaction.response.send_message("Clear ALL fight records?", view=ConfirmResetView("Fight Records", slash_clearallfights), ephemeral=True)
 
-class MatChallengesPanelView(discord.ui.View):
+class MatChallengesPanelView(SafeView):
     def __init__(self): super().__init__(timeout=240)
     @discord.ui.button(label="Active Mats", style=discord.ButtonStyle.success)
-    async def active(self, interaction, button): await slash_activemats(interaction)
+    async def active(self, interaction, button): await call_command(slash_activemats, interaction)
     @discord.ui.button(label="Random Mat Pairs", style=discord.ButtonStyle.success)
-    async def pairs(self, interaction, button): await slash_matpairs(interaction)
+    async def pairs(self, interaction, button): await call_command(slash_matpairs, interaction)
 
-class GauntletPanelView(discord.ui.View):
+class GauntletPanelView(SafeView):
     def __init__(self): super().__init__(timeout=240)
     @discord.ui.button(label="Run Gauntlet", style=discord.ButtonStyle.success)
     async def gauntlet(self, interaction, button): await interaction.response.send_modal(NameModal("Run Gauntlet", "Character name", slash_gauntlet))
     @discord.ui.button(label="Gauntlet Hazard", style=discord.ButtonStyle.secondary)
-    async def hazard(self, interaction, button): await slash_gauntlethazard(interaction)
+    async def hazard(self, interaction, button): await call_command(slash_gauntlethazard, interaction)
     @discord.ui.button(label="Gauntlet Action", style=discord.ButtonStyle.secondary)
     async def action(self, interaction, button): await interaction.response.send_modal(NameModal("Gauntlet Action", "Character name", slash_gauntletaction))
     @discord.ui.button(label="Gauntlet Injury", style=discord.ButtonStyle.secondary)
-    async def injury(self, interaction, button): await slash_gauntletinjury(interaction)
+    async def injury(self, interaction, button): await call_command(slash_gauntletinjury, interaction)
     @discord.ui.button(label="Gauntlet Outcome", style=discord.ButtonStyle.secondary)
-    async def outcome(self, interaction, button): await slash_gauntletoutcome(interaction)
+    async def outcome(self, interaction, button): await call_command(slash_gauntletoutcome, interaction)
 
-class DragonReactionsPanelView(discord.ui.View):
+class DragonReactionsPanelView(SafeView):
     def __init__(self): super().__init__(timeout=240)
     @discord.ui.button(label="Dragon Speak", style=discord.ButtonStyle.success)
-    async def ds(self, interaction, button): await slash_dragonspeak(interaction)
+    async def ds(self, interaction, button): await call_command(slash_dragonspeak, interaction)
     @discord.ui.button(label="Dragon Action", style=discord.ButtonStyle.success)
-    async def da(self, interaction, button): await slash_dragonaction(interaction)
+    async def da(self, interaction, button): await call_command(slash_dragonaction, interaction)
 
-class DicePanelView(discord.ui.View):
+class DicePanelView(SafeView):
     def __init__(self): super().__init__(timeout=240)
     @discord.ui.button(label="Roll Custom Dice", style=discord.ButtonStyle.success)
     async def custom(self, interaction, button): await interaction.response.send_modal(DiceModal())
     @discord.ui.button(label="d4", style=discord.ButtonStyle.secondary)
-    async def d4(self, interaction, button): await slash_die(interaction, app_commands.Choice(name="d4", value="d4"))
+    async def d4(self, interaction, button): await call_command(slash_die, interaction, app_commands.Choice(name="d4", value="d4"))
     @discord.ui.button(label="d6", style=discord.ButtonStyle.secondary)
-    async def d6(self, interaction, button): await slash_die(interaction, app_commands.Choice(name="d6", value="d6"))
+    async def d6(self, interaction, button): await call_command(slash_die, interaction, app_commands.Choice(name="d6", value="d6"))
     @discord.ui.button(label="d8", style=discord.ButtonStyle.secondary)
-    async def d8(self, interaction, button): await slash_die(interaction, app_commands.Choice(name="d8", value="d8"))
+    async def d8(self, interaction, button): await call_command(slash_die, interaction, app_commands.Choice(name="d8", value="d8"))
     @discord.ui.button(label="d10", style=discord.ButtonStyle.secondary)
-    async def d10(self, interaction, button): await slash_die(interaction, app_commands.Choice(name="d10", value="d10"))
+    async def d10(self, interaction, button): await call_command(slash_die, interaction, app_commands.Choice(name="d10", value="d10"))
     @discord.ui.button(label="d12", style=discord.ButtonStyle.secondary)
-    async def d12(self, interaction, button): await slash_die(interaction, app_commands.Choice(name="d12", value="d12"))
+    async def d12(self, interaction, button): await call_command(slash_die, interaction, app_commands.Choice(name="d12", value="d12"))
     @discord.ui.button(label="d20", style=discord.ButtonStyle.secondary)
-    async def d20(self, interaction, button): await slash_die(interaction, app_commands.Choice(name="d20", value="d20"))
+    async def d20(self, interaction, button): await call_command(slash_die, interaction, app_commands.Choice(name="d20", value="d20"))
     @discord.ui.button(label="d100", style=discord.ButtonStyle.secondary)
-    async def d100(self, interaction, button): await slash_die(interaction, app_commands.Choice(name="d100", value="d100"))
+    async def d100(self, interaction, button): await call_command(slash_die, interaction, app_commands.Choice(name="d100", value="d100"))
 
-class DeleteCharacterPanelView(discord.ui.View):
+class DeleteCharacterPanelView(SafeView):
     def __init__(self): super().__init__(timeout=240)
     @discord.ui.button(label="Remove Rider", style=discord.ButtonStyle.danger)
     async def rider(self, interaction, button): await interaction.response.send_modal(NameModal("Remove Rider", "Character name", slash_removerider))
@@ -2531,7 +2564,7 @@ class DeleteCharacterPanelView(discord.ui.View):
     @discord.ui.button(label="Remove Healer", style=discord.ButtonStyle.danger)
     async def healer(self, interaction, button): await interaction.response.send_modal(NameModal("Remove Healer", "Character name", slash_removehealer))
 
-class MainPanelView(discord.ui.View):
+class MainPanelView(SafeView):
     def __init__(self): super().__init__(timeout=300)
     @discord.ui.button(label="Roster + Look Up", style=discord.ButtonStyle.primary, row=0)
     async def roster(self, interaction, button): await interaction.response.send_message("**Roster + Look Up**", view=RosterLookupPanelView(), ephemeral=True)
@@ -2544,7 +2577,7 @@ class MainPanelView(discord.ui.View):
     @discord.ui.button(label="Roll for Specialty/Dragon", style=discord.ButtonStyle.primary, row=0)
     async def specialty(self, interaction, button): await interaction.response.send_message("**Roll for Specialty/Dragon**", view=SpecialtyDragonPanelView(), ephemeral=True)
     @discord.ui.button(label="Roll for Signet", style=discord.ButtonStyle.primary, row=1)
-    async def signet(self, interaction, button): await slash_signet(interaction)
+    async def signet(self, interaction, button): await call_command(slash_signet, interaction)
     @discord.ui.button(label="Combat", style=discord.ButtonStyle.success, row=1)
     async def combat(self, interaction, button): await interaction.response.send_message("**Combat**", view=CombatPanelView(), ephemeral=True)
     @discord.ui.button(label="Mat Challenges", style=discord.ButtonStyle.success, row=1)
