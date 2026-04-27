@@ -2405,8 +2405,6 @@ class RosterLookupPanelView(discord.ui.View):
     @discord.ui.button(label="View Full Roster", style=discord.ButtonStyle.primary)
     async def roster(self, interaction, button): await slash_roster(interaction, app_commands.Choice(name="All", value="all"))
     @discord.ui.button(label="Names Only", style=discord.ButtonStyle.secondary)
-    async def simple(self, interaction, button): await slash_roster(interaction, app_commands.Choice(name="Simple", value="simple"))
-    @discord.ui.button(label="Look Up Character", style=discord.ButtonStyle.secondary)
     async def whois(self, interaction, button): await interaction.response.send_modal(NameModal("Character Lookup", "Character name", slash_whois))
     @discord.ui.button(label="Rider Formation", style=discord.ButtonStyle.secondary)
     async def riderslots(self, interaction, button): await slash_riderslots(interaction)
