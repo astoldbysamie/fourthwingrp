@@ -2156,8 +2156,8 @@ async def slash_matpairs(interaction: discord.Interaction):
         return
     pairs, bye = make_mat_pairs(active_names)
     lines = ["**Mat Challenge Pairings**"]
-    for index, (first, second, challenge) in enumerate(pairs, start=1):
-        lines.append(f"{index}. **{first}** vs **{second}** : {challenge}")
+    for first, second, challenge in pairs:
+        lines.append(f"**{first}** vs **{second}**")
     if bye:
         lines.append(f"\n**Unpaired this round:** {bye}")
     await send_chunks_interaction(interaction, "\n".join(lines))
