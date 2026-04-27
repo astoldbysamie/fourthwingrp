@@ -2594,12 +2594,22 @@ class MainPanelView(SafeView):
     async def help(self, interaction, button): await send_chunks_interaction(interaction, build_slash_help_text(), ephemeral=True)
 
 
-@bot.tree.command(name="panel", description="Open the Basgiath button control panel")
+PANEL_MESSAGE = "⚔️ **Basgiath Control Panel**\nBlue = roster/assign/randomizing. Green = combat/challenges/reactions/dice. Red = delete/help."
+
+@bot.tree.command(name="panel", description="Open a private Basgiath button control panel")
 async def slash_panel(interaction: discord.Interaction):
     await interaction.response.send_message(
-        "⚔️ **Basgiath Control Panel**\nBlue = roster/assign/randomizing. Green = combat/challenges/reactions/dice. Red = delete/help.",
+        PANEL_MESSAGE,
         view=MainPanelView(),
         ephemeral=True
+    )
+
+@bot.tree.command(name="dashboard", description="Post a public Basgiath button dashboard")
+async def slash_dashboard(interaction: discord.Interaction):
+    await interaction.response.send_message(
+        PANEL_MESSAGE,
+        view=MainPanelView(),
+        ephemeral=False
     )
 
 # HELP + ADMIN
