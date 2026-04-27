@@ -2320,13 +2320,13 @@ class SimpleSelect(discord.ui.Select):
     def __init__(self, key: str, placeholder: str, values: list[str], required: bool = True):
         options = [discord.SelectOption(label=value, value=value) for value in values]
         if not required:
-            options.insert(0, discord.SelectOption(label="Skip / Not needed", value=""))
+            options.insert(0, discord.SelectOption(label="Skip / Not needed", value="__skip__"))
         super().__init__(placeholder=placeholder, min_values=1, max_values=1, options=options)
         self.key = key
 
     async def callback(self, interaction: discord.Interaction):
         if hasattr(self.view, "selections"):
-            self.view.selections[self.key] = self.values[0] or None
+            self.view.selections[self.key] = None if self.values[0] == "__skip__" else self.values[0]
             await interaction.response.defer()
 
 
