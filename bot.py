@@ -44,6 +44,7 @@ INFANTRY_FILE = "infantry_formation.json"
 SCRIBE_FILE = "scribe_formation.json"
 HEALER_FILE = "healer_formation.json"
 FIGHT_FILE = "fight_records.json"
+DRAGON_REGISTRY_FILE = "dragon_registry.json"
 
 # -----------------------------
 # RIDER FORMATION DATA
@@ -433,6 +434,7 @@ infantry_data = load_json_file(INFANTRY_FILE, DEFAULT_INFANTRY_STRUCTURE)
 scribe_data = load_json_file(SCRIBE_FILE, DEFAULT_SCRIBE_STRUCTURE)
 healer_data = load_json_file(HEALER_FILE, DEFAULT_HEALER_STRUCTURE)
 fight_records = load_json_file(FIGHT_FILE, {})
+dragon_registry = load_json_file(DRAGON_REGISTRY_FILE, {})
 
 # -----------------------------
 # BASIC HELPERS
@@ -945,6 +947,44 @@ def format_fight_log(name: str):
 
     return "\n".join(lines)
 
+
+
+# -----------------------------
+# DRAGON REGISTRY HELPERS
+# -----------------------------
+def register_dragon_entry(name: str, signet: str, dragon_name: str, dragon_gender: str, dragon_color_tail: str):
+    global dragon_registry
+    clean_name = name.strip()
+    key = normalize_name(clean_name)
+    dragon_registry[key] = {
+        "name": clean_name,
+        "signet": signet.strip(),
+        "dragon_name": dragon_name.strip(),
+        "dragon_gender": dragon_gender.strip(),
+        "dragon_color_tail": dragon_color_tail.strip(),
+        "updated_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+    }
+    save_json_file(DRAGON_REGISTRY_FILE, dragon_registry)
+    return dragon_registry[key]
+
+
+def format_dragon_entry(entry: dict) -> str:
+    return (
+        f"**{entry['name']}**: {entry['signet']}\n"
+        f"Dragon: **{entry['dragon_name']}**. {entry['dragon_gender']} {entry['dragon_color_tail']}"
+    )
+
+
+def format_dragon_registry() -> str:
+    if not dragon_registry:
+        return "**Dragon Registry**\nNo dragons have been registered yet. Use `/registerdragon` or the dashboard button to add one."
+
+    entries = sorted(dragon_registry.values(), key=lambda item: item["name"].lower())
+    lines = ["🐉 **Dragon Registry**"]
+    for entry in entries:
+        lines.append("")
+        lines.append(format_dragon_entry(entry))
+    return "\n".join(lines)
 
 # -----------------------------
 # EVENTS
@@ -1724,6 +1764,34 @@ async def slash_signet(interaction: discord.Interaction):
     flavor = random.choice(rare_flavor if roll >= 15 else common_flavor)
     await interaction.response.send_message(f"**Signet Manifestation**\n{flavor}\n\n{rarity}")
 
+
+@bot.tree.command(name="registerdragon", description="Register a rider, signet, and dragon")
+@app_commands.describe(
+    name="Character name",
+    signet="Character signet",
+    dragon_name="Dragon name",
+    dragon_gender="Dragon gender",
+    dragon_color_tail="Dragon color and tail type"
+)
+async def slash_registerdragon(
+    interaction: discord.Interaction,
+    name: str,
+    signet: str,
+    dragon_name: str,
+    dragon_gender: str,
+    dragon_color_tail: str
+):
+    entry = register_dragon_entry(name, signet, dragon_name, dragon_gender, dragon_color_tail)
+    await interaction.response.send_message(
+        "🐉 **Dragon registered.**\n" + format_dragon_entry(entry)
+    )
+
+
+@bot.tree.command(name="dragonregistry", description="View the full dragon registry")
+async def slash_dragonregistry(interaction: discord.Interaction):
+    await send_chunks_interaction(interaction, format_dragon_registry())
+
+
 @bot.tree.command(name="random", description="Choose one randomizer from a dropdown")
 @app_commands.choices(kind=RANDOM_CHOICES)
 async def slash_random(interaction: discord.Interaction, kind: app_commands.Choice[str]):
@@ -2232,6 +2300,7 @@ async def slash_clearfights(interaction: discord.Interaction, name: str):
 async def slash_clearallfights(interaction: discord.Interaction):
     global fight_records
     fight_records.clear()
+    dragon_registry.clear()
     save_json_file(FIGHT_FILE, fight_records)
     await interaction.response.send_message("🔥 All fight history has been wiped.")
 
@@ -2289,6 +2358,35 @@ class TwoNameModal(SafeModal):
 
     async def on_submit(self, interaction: discord.Interaction):
         await call_command(self.callback_func, interaction, str(self.name_one.value).strip(), str(self.name_two.value).strip())
+
+
+
+class DragonRegistryModal(SafeModal):
+    def __init__(self):
+        super().__init__(title="Register Your Dragon")
+        self.name = discord.ui.TextInput(label="Name", placeholder="Example: Anya Greyson", required=True, max_length=100)
+        self.signet = discord.ui.TextInput(label="Signet", placeholder="Example: Ice Wielder", required=True, max_length=100)
+        self.dragon_name = discord.ui.TextInput(label="Dragon name", placeholder="Example: Vaelith", required=True, max_length=100)
+        self.dragon_gender = discord.ui.TextInput(label="Dragon gender", placeholder="Example: Male", required=True, max_length=50)
+        self.dragon_color_tail = discord.ui.TextInput(label="Dragon color / tail", placeholder="Example: Blue/Swordtail", required=True, max_length=100)
+        self.add_item(self.name)
+        self.add_item(self.signet)
+        self.add_item(self.dragon_name)
+        self.add_item(self.dragon_gender)
+        self.add_item(self.dragon_color_tail)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        entry = register_dragon_entry(
+            str(self.name.value),
+            str(self.signet.value),
+            str(self.dragon_name.value),
+            str(self.dragon_gender.value),
+            str(self.dragon_color_tail.value)
+        )
+        await interaction.response.send_message(
+            "🐉 **Dragon registered.**\n" + format_dragon_entry(entry),
+            ephemeral=True
+        )
 
 
 class DiceModal(SafeModal):
@@ -2590,11 +2688,15 @@ class MainPanelView(SafeView):
     async def dice(self, interaction, button): await interaction.response.send_message("**Dice**", view=DicePanelView(), ephemeral=True)
     @discord.ui.button(label="Delete Character", style=discord.ButtonStyle.danger, row=2)
     async def delete(self, interaction, button): await interaction.response.send_message("**Delete Character**", view=DeleteCharacterPanelView(), ephemeral=True)
-    @discord.ui.button(label="Help Guide", style=discord.ButtonStyle.danger, row=2)
+    @discord.ui.button(label="Register your dragon with /registerdragon", style=discord.ButtonStyle.secondary, row=3)
+    async def register_dragon(self, interaction, button): await interaction.response.send_modal(DragonRegistryModal())
+    @discord.ui.button(label="View Dragon Registry", style=discord.ButtonStyle.secondary, row=3)
+    async def view_dragon_registry(self, interaction, button): await send_chunks_interaction(interaction, format_dragon_registry(), ephemeral=True)
+    @discord.ui.button(label="Help Guide", style=discord.ButtonStyle.danger, row=3)
     async def help(self, interaction, button): await send_chunks_interaction(interaction, build_slash_help_text(), ephemeral=True)
 
 
-PANEL_MESSAGE = "⚔️ **Basgiath Control Panel**\nBlue = roster/assign/randomizing. Green = combat/challenges/reactions/dice. Red = delete/help."
+PANEL_MESSAGE = "⚔️ **Basgiath Control Panel**\nBlue = roster/assign/randomizing. Green = combat/challenges/reactions/dice. Gray = dragon registry. Red = delete/help."
 
 @bot.tree.command(name="panel", description="Open a private Basgiath button control panel")
 async def slash_panel(interaction: discord.Interaction):
@@ -2691,6 +2793,11 @@ def build_slash_help_text():
         "`/roll dice` : Roll dice, like d20 or 2d6+3\n"
         "`/die die` : Roll one die from a dropdown\n\n"
 
+        "**Dragon Registry**\n"
+        "`/registerdragon name signet dragon_name dragon_gender dragon_color_tail` : Register or update a rider's dragon\n"
+        "`/dragonregistry` : View the full dragon registry\n"
+        "Dashboard button: Register your dragon with `/registerdragon`\n\n"
+
         "**Admin**\n"
         "`/hardreset` : Reset EVERYTHING (admin only)\n\n"
 
@@ -2707,18 +2814,20 @@ async def slash_help(interaction: discord.Interaction):
 @bot.tree.command(name="hardreset", description="Reset everything: formations and fight records")
 @app_commands.checks.has_permissions(administrator=True)
 async def slash_hardreset(interaction: discord.Interaction):
-    global rider_data, infantry_data, scribe_data, healer_data, fight_records
+    global rider_data, infantry_data, scribe_data, healer_data, fight_records, dragon_registry
     rider_data = copy.deepcopy(DEFAULT_RIDER_STRUCTURE)
     infantry_data = copy.deepcopy(DEFAULT_INFANTRY_STRUCTURE)
     scribe_data = copy.deepcopy(DEFAULT_SCRIBE_STRUCTURE)
     healer_data = copy.deepcopy(DEFAULT_HEALER_STRUCTURE)
     fight_records.clear()
+    dragon_registry.clear()
     save_json_file(RIDER_FILE, rider_data)
     save_json_file(INFANTRY_FILE, infantry_data)
     save_json_file(SCRIBE_FILE, scribe_data)
     save_json_file(HEALER_FILE, healer_data)
     save_json_file(FIGHT_FILE, fight_records)
-    await interaction.response.send_message("🔥 **Hard reset complete.** All formations and fight records have been wiped.")
+    save_json_file(DRAGON_REGISTRY_FILE, dragon_registry)
+    await interaction.response.send_message("🔥 **Hard reset complete.** All formations, fight records, and dragon registry entries have been wiped.")
 
 @slash_hardreset.error
 @slash_clearfights.error
