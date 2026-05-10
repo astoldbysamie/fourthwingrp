@@ -1005,6 +1005,38 @@ def format_alliance_entry(entry: dict) -> str:
     return f"**{entry['name']}** is aligned with **{entry['alliance']}**."
 
 
+def format_alliance_registry() -> str:
+    navarre = []
+    rebellion = []
+
+    for entry in alliance_registry.values():
+        alliance = entry.get("alliance", "").title()
+        name = entry.get("name", "").strip()
+        if not name:
+            continue
+        if alliance == "Navarre":
+            navarre.append(name)
+        elif alliance == "Rebellion":
+            rebellion.append(name)
+
+    navarre.sort(key=str.lower)
+    rebellion.sort(key=str.lower)
+
+    lines = ["**ALLIANCE**", "", "# Navarre"]
+    if navarre:
+        lines.extend([f"- {name}" for name in navarre])
+    else:
+        lines.append("- No one listed yet")
+
+    lines.extend(["", "# Rebellion"])
+    if rebellion:
+        lines.extend([f"- {name}" for name in rebellion])
+    else:
+        lines.append("- No one listed yet")
+
+    return "\n".join(lines)
+
+
 def format_full_character_lookup(name: str) -> str | None:
     info = resolve_active_character(name)
     dragon = dragon_registry.get(normalize_name(name))
@@ -2096,6 +2128,10 @@ async def slash_deletealliance(interaction: discord.Interaction, name: str):
         return
     await interaction.response.send_message("🗑️ **Alliance deleted.**\n" + format_alliance_entry(removed))
 
+@bot.tree.command(name="alliances", description="View all alliances grouped by Navarre and Rebellion")
+async def slash_alliances(interaction: discord.Interaction):
+    await send_chunks_interaction(interaction, format_alliance_registry())
+
 # -----------------------------
 # SLASH COMMANDS: FORMATIONS
 # -----------------------------
@@ -3086,6 +3122,8 @@ class MainPanelView(SafeView):
     async def register_dragon(self, interaction, button): await interaction.response.send_modal(DragonRegistryModal())
     @discord.ui.button(label="View Dragon Registry", style=discord.ButtonStyle.secondary, row=3)
     async def view_dragon_registry(self, interaction, button): await send_chunks_interaction(interaction, format_dragon_registry(), ephemeral=True)
+    @discord.ui.button(label="Alliance", style=discord.ButtonStyle.secondary, row=3)
+    async def view_alliances(self, interaction, button): await send_chunks_interaction(interaction, format_alliance_registry(), ephemeral=True)
     @discord.ui.button(label="Edit Dragon/Signet", style=discord.ButtonStyle.secondary, row=4)
     async def edit_dragon_registry(self, interaction, button): await interaction.response.send_modal(EditDragonRegistryModal())
     @discord.ui.button(label="Delete Dragon/Signet", style=discord.ButtonStyle.danger, row=4)
@@ -3125,6 +3163,7 @@ def build_slash_help_text():
         "`/dragonregistry` : View the full dragon registry alphabetically\n"
         "`/setalliance` : Add or edit Rebellion/Navarre for a character\n"
         "`/deletealliance` : Delete a saved alliance entry\n"
+        "`/alliances` : View alliances grouped by Navarre and Rebellion\n"
         "`/whois` : See everything entered for a character\n\n"
 
         "**Formations**\n\n"
