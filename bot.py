@@ -45,6 +45,7 @@ SCRIBE_FILE = "scribe_formation.json"
 HEALER_FILE = "healer_formation.json"
 FIGHT_FILE = "fight_records.json"
 DRAGON_REGISTRY_FILE = "dragon_registry.json"
+ALLIANCE_FILE = "alliance_registry.json"
 
 # -----------------------------
 # RIDER FORMATION DATA
@@ -435,6 +436,7 @@ scribe_data = load_json_file(SCRIBE_FILE, DEFAULT_SCRIBE_STRUCTURE)
 healer_data = load_json_file(HEALER_FILE, DEFAULT_HEALER_STRUCTURE)
 fight_records = load_json_file(FIGHT_FILE, {})
 dragon_registry = load_json_file(DRAGON_REGISTRY_FILE, {})
+alliance_registry = load_json_file(ALLIANCE_FILE, {})
 
 # -----------------------------
 # BASIC HELPERS
@@ -497,6 +499,7 @@ def create_character_profile(quadrant_choice: str | None = None) -> str:
     age = random.randint(21, 27)
     gender, pronouns = random.choice(PRONOUN_SETS)
     alliance = random.choice(ALLIANCES)
+    set_alliance_entry(name, alliance)
     positive_1, positive_2 = pick_two_unique(POSITIVE_TRAITS)
     negative_1, negative_2 = pick_two_unique(NEGATIVE_TRAITS)
     aesthetic_1, aesthetic_2, aesthetic_3 = pick_three_unique(AESTHETICS)
@@ -948,6 +951,112 @@ def format_fight_log(name: str):
     return "\n".join(lines)
 
 
+
+
+# -----------------------------
+# ALLIANCE + FULL CHARACTER HELPERS
+# -----------------------------
+def set_alliance_entry(name: str, alliance: str):
+    global alliance_registry
+    clean_name = name.strip()
+    clean_alliance = alliance.strip().title()
+    if clean_alliance not in ["Rebellion", "Navarre"]:
+        return None
+    alliance_registry[normalize_name(clean_name)] = {
+        "name": clean_name,
+        "alliance": clean_alliance,
+        "updated_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+    }
+    save_json_file(ALLIANCE_FILE, alliance_registry)
+    return alliance_registry[normalize_name(clean_name)]
+
+
+def get_alliance_entry(name: str):
+    return alliance_registry.get(normalize_name(name))
+
+
+def delete_alliance_entry(name: str):
+    global alliance_registry
+    key = normalize_name(name)
+    if key not in alliance_registry:
+        return None
+    removed = alliance_registry.pop(key)
+    save_json_file(ALLIANCE_FILE, alliance_registry)
+    return removed
+
+
+def find_character_display_name(name: str) -> str:
+    info = resolve_active_character(name)
+    if info:
+        return info["name"]
+    dragon = dragon_registry.get(normalize_name(name))
+    if dragon:
+        return dragon["name"]
+    alliance = alliance_registry.get(normalize_name(name))
+    if alliance:
+        return alliance["name"]
+    record = fight_records.get(normalize_name(name))
+    if record:
+        return record["name"]
+    return name.strip()
+
+
+def format_alliance_entry(entry: dict) -> str:
+    return f"**{entry['name']}** is aligned with **{entry['alliance']}**."
+
+
+def format_full_character_lookup(name: str) -> str | None:
+    info = resolve_active_character(name)
+    dragon = dragon_registry.get(normalize_name(name))
+    alliance = alliance_registry.get(normalize_name(name))
+    record = fight_records.get(normalize_name(name), {"wins": 0, "losses": 0, "draws": 0, "fights": []})
+
+    if not info and not dragon and not alliance and not record.get("fights"):
+        return None
+
+    display_name = find_character_display_name(name)
+    lines = [f"**Character Lookup: {display_name}**"]
+    lines.append(f"Alliance: **{alliance['alliance'] if alliance else 'Not entered'}**")
+
+    if info:
+        lines.extend([
+            f"Quadrant: **{info['quadrant'].title()}**",
+            f"Rank/Role: **{info['role']}**",
+            f"Formation: **{info['assignment']}**",
+        ])
+    else:
+        lines.extend([
+            "Quadrant: **Not assigned**",
+            "Rank/Role: **Not assigned**",
+            "Formation: **Not assigned**",
+        ])
+
+    if dragon:
+        lines.extend([
+            f"Signet: **{dragon.get('signet', 'Not entered')}**",
+            f"Dragon: **{dragon.get('dragon_name', 'Not entered')}**",
+            f"Dragon Gender/Pronouns: **{dragon.get('dragon_gender', 'Not entered')}**",
+            f"Dragon Color/Tail: **{dragon.get('dragon_color_tail', 'Not entered')}**",
+        ])
+    else:
+        lines.extend([
+            "Signet: **Not entered**",
+            "Dragon: **Not entered**",
+            "Dragon Gender/Pronouns: **Not entered**",
+            "Dragon Color/Tail: **Not entered**",
+        ])
+
+    lines.extend([
+        f"Fight Record: **{record['wins']}-{record['losses']}-{record['draws']}**",
+        f"Total Fights: **{len(record['fights'])}**",
+    ])
+
+    if record.get("fights"):
+        lines.append("\n**Recent Fights**")
+        for fight in record["fights"][-5:][::-1]:
+            lines.append(f"• vs **{fight['opponent']}** — {fight['outcome'].title()} ({fight['roll']} to {fight['opponent_roll']}) on {fight['timestamp']}")
+
+    return "\n".join(lines)
 
 # -----------------------------
 # DRAGON REGISTRY HELPERS
@@ -1708,6 +1817,7 @@ QUADRANT_CHOICES = [app_commands.Choice(name=x, value=x.lower()) for x in ["Any"
 ROSTER_FILTER_CHOICES = [app_commands.Choice(name=x, value=x.lower()) for x in ["All", "Simple", "Riders", "Infantry", "Scribes", "Healers"]]
 RANDOM_CHOICES = [app_commands.Choice(name=x, value=x.lower().replace(" ", "_")) for x in ["Threshing", "Signet", "Dragon Speak", "Dragon Action", "Infantry", "Scribe", "Healer"]]
 DICE_CHOICES = [app_commands.Choice(name=x, value=x) for x in ["d4", "d6", "d8", "d10", "d12", "d20", "d100"]]
+ALLIANCE_CHOICES = [app_commands.Choice(name=x, value=x) for x in ["Rebellion", "Navarre"]]
 
 async def send_chunks_interaction(interaction: discord.Interaction, text: str, ephemeral: bool = False):
     chunks = split_long_message(text)
@@ -1961,16 +2071,30 @@ async def slash_roster(interaction: discord.Interaction, filter: app_commands.Ch
         lines.append(f"• **{info['name']}** — {info['role']} | {info['assignment']}")
     await send_chunks_interaction(interaction, "\n".join(lines))
 
-@bot.tree.command(name="whois", description="Look up one assigned character")
+@bot.tree.command(name="whois", description="See everything entered about one character")
 async def slash_whois(interaction: discord.Interaction, name: str):
-    info = resolve_active_character(name)
-    if not info:
-        await interaction.response.send_message(f"Could not find an active assigned character named **{name}**.")
+    result = format_full_character_lookup(name)
+    if result is None:
+        await interaction.response.send_message(f"Could not find any saved info for **{name}**.", ephemeral=True)
         return
-    record = fight_records.get(normalize_name(info["name"]), {"wins": 0, "losses": 0, "draws": 0, "fights": []})
-    await interaction.response.send_message(
-        f"**Character Lookup: {info['name']}**\nQuadrant: **{info['quadrant'].title()}**\nRole: **{info['role']}**\nAssignment: **{info['assignment']}**\nFight Record: **{record['wins']}-{record['losses']}-{record['draws']}**\nTotal Fights: **{len(record['fights'])}**"
-    )
+    await send_chunks_interaction(interaction, result)
+
+@bot.tree.command(name="setalliance", description="Enter or edit a character alliance")
+@app_commands.choices(alliance=ALLIANCE_CHOICES)
+async def slash_setalliance(interaction: discord.Interaction, name: str, alliance: app_commands.Choice[str]):
+    entry = set_alliance_entry(name, alliance.value)
+    if entry is None:
+        await interaction.response.send_message("Alliance must be **Rebellion** or **Navarre**.", ephemeral=True)
+        return
+    await interaction.response.send_message("⚔️ **Alliance saved.**\n" + format_alliance_entry(entry))
+
+@bot.tree.command(name="deletealliance", description="Delete a character alliance")
+async def slash_deletealliance(interaction: discord.Interaction, name: str):
+    removed = delete_alliance_entry(name)
+    if removed is None:
+        await interaction.response.send_message(f"No alliance entry found for **{name}**.", ephemeral=True)
+        return
+    await interaction.response.send_message("🗑️ **Alliance deleted.**\n" + format_alliance_entry(removed))
 
 # -----------------------------
 # SLASH COMMANDS: FORMATIONS
@@ -2030,6 +2154,22 @@ async def slash_reassignrider(interaction: discord.Interaction, name: str):
     assign_rider_slot(rider_data, name, slot)
     save_json_file(RIDER_FILE, rider_data)
     await interaction.response.send_message(f"{removed}\n{format_rider_assignment(name, slot)}")
+
+@bot.tree.command(name="moverider", description="Reassign a rider to an exact formation spot without randomizing")
+@app_commands.choices(role=RIDER_ROLE_CHOICES, wing=WING_CHOICES, section=SECTION_CHOICES, squad=SQUAD_CHOICES)
+async def slash_moverider(interaction: discord.Interaction, name: str, role: app_commands.Choice[str], wing: app_commands.Choice[str], section: app_commands.Choice[str] = None, squad: app_commands.Choice[str] = None):
+    global rider_data
+    removed = remove_rider(rider_data, name)
+    if removed is None:
+        await interaction.response.send_message(f"Could not find **{name}** in the rider formation.", ephemeral=True)
+        return
+    error = manual_assign_rider_slot(rider_data, name, role.value, wing.value, section.value if section else None, squad.value if squad else None)
+    if error:
+        save_json_file(RIDER_FILE, rider_data)
+        await interaction.response.send_message(f"{removed}\nCould not place them in the new spot: {error}", ephemeral=True)
+        return
+    save_json_file(RIDER_FILE, rider_data)
+    await interaction.response.send_message(f"{removed}\n{format_manual_rider_assignment(name, role.value, wing.value, section.value if section else None, squad.value if squad else None)}")
 
 @bot.tree.command(name="riderslots", description="View rider formation")
 async def slash_riderslots(interaction: discord.Interaction):
@@ -2098,6 +2238,22 @@ async def slash_reassigninfantry(interaction: discord.Interaction, name: str):
     assign_simple_slot(infantry_data, name, slot, "Cadet", "Cadets")
     save_json_file(INFANTRY_FILE, infantry_data)
     await interaction.response.send_message(f"{removed}\n{format_simple_assignment_with_lore(name, slot, 'infantry')}")
+
+@bot.tree.command(name="moveinfantry", description="Reassign infantry to an exact spot without randomizing")
+@app_commands.choices(role=INFANTRY_ROLE_CHOICES, division=DIVISION_CHOICES)
+async def slash_moveinfantry(interaction: discord.Interaction, name: str, role: app_commands.Choice[str], division: app_commands.Choice[str] = None):
+    global infantry_data
+    removed = remove_from_simple_structure(infantry_data, name, "Cadets")
+    if removed is None:
+        await interaction.response.send_message(f"Could not find **{name}** in infantry.", ephemeral=True)
+        return
+    error = manual_assign_simple(infantry_data, name, role.value, division.value if division else None, ["High Commander", "Commander"], ["Captain", "Sergeant", "Corporal", "Soldier"], "Cadet", "Cadets")
+    if error:
+        save_json_file(INFANTRY_FILE, infantry_data)
+        await interaction.response.send_message(f"{removed}\nCould not place them in the new spot: {error}", ephemeral=True)
+        return
+    save_json_file(INFANTRY_FILE, infantry_data)
+    await interaction.response.send_message(f"{removed}\n**{name}** reassigned as **{role.value}**." + (f"\n{format_group_lore(division.value, 'infantry')}" if division else ""))
 
 @bot.tree.command(name="infantryslots", description="View infantry formation")
 async def slash_infantryslots(interaction: discord.Interaction):
@@ -2168,6 +2324,22 @@ async def slash_reassignscribe(interaction: discord.Interaction, name: str):
     save_json_file(SCRIBE_FILE, scribe_data)
     await interaction.response.send_message(f"{removed}\n{format_simple_assignment_with_lore(name, slot, 'scribe')}")
 
+@bot.tree.command(name="movescribe", description="Reassign scribe to an exact spot without randomizing")
+@app_commands.choices(role=SCRIBE_ROLE_CHOICES, order=ORDER_CHOICES)
+async def slash_movescribe(interaction: discord.Interaction, name: str, role: app_commands.Choice[str], order: app_commands.Choice[str] = None):
+    global scribe_data
+    removed = remove_from_simple_structure(scribe_data, name, "Scribes")
+    if removed is None:
+        await interaction.response.send_message(f"Could not find **{name}** in the scribes quadrant.", ephemeral=True)
+        return
+    error = manual_assign_simple(scribe_data, name, role.value, order.value if order else None, ["Grand Maester", "Head Archivist"], ["Master Scholar", "Curator", "Archivist", "Senior Scribe"], "Scribe", "Scribes")
+    if error:
+        save_json_file(SCRIBE_FILE, scribe_data)
+        await interaction.response.send_message(f"{removed}\nCould not place them in the new spot: {error}", ephemeral=True)
+        return
+    save_json_file(SCRIBE_FILE, scribe_data)
+    await interaction.response.send_message(f"{removed}\n**{name}** reassigned as **{role.value}**." + (f"\n{format_group_lore(order.value, 'scribe')}" if order else ""))
+
 @bot.tree.command(name="scribeslots", description="View scribe formation")
 async def slash_scribeslots(interaction: discord.Interaction):
     await send_chunks_interaction(interaction, format_simple_taken(scribe_data, "Scribes"))
@@ -2235,6 +2407,22 @@ async def slash_reassignhealer(interaction: discord.Interaction, name: str):
     assign_simple_slot(healer_data, name, slot, "Trainee", "Trainees")
     save_json_file(HEALER_FILE, healer_data)
     await interaction.response.send_message(f"{removed}\n{format_simple_assignment_with_lore(name, slot, 'healer')}")
+
+@bot.tree.command(name="movehealer", description="Reassign healer to an exact spot without randomizing")
+@app_commands.choices(role=HEALER_ROLE_CHOICES, circle=CIRCLE_CHOICES)
+async def slash_movehealer(interaction: discord.Interaction, name: str, role: app_commands.Choice[str], circle: app_commands.Choice[str] = None):
+    global healer_data
+    removed = remove_from_simple_structure(healer_data, name, "Trainees")
+    if removed is None:
+        await interaction.response.send_message(f"Could not find **{name}** in healers.", ephemeral=True)
+        return
+    error = manual_assign_simple(healer_data, name, role.value, circle.value if circle else None, ["Arch Healer", "Healer"], ["Senior Practitioner", "Practitioner", "Medic", "Acolyte"], "Trainee", "Trainees")
+    if error:
+        save_json_file(HEALER_FILE, healer_data)
+        await interaction.response.send_message(f"{removed}\nCould not place them in the new spot: {error}", ephemeral=True)
+        return
+    save_json_file(HEALER_FILE, healer_data)
+    await interaction.response.send_message(f"{removed}\n**{name}** reassigned as **{role.value}**." + (f"\n{format_group_lore(circle.value, 'healer')}" if circle else ""))
 
 @bot.tree.command(name="healerslots", description="View healer formation")
 async def slash_healerslots(interaction: discord.Interaction):
@@ -2373,6 +2561,7 @@ async def slash_clearallfights(interaction: discord.Interaction):
     global fight_records
     fight_records.clear()
     dragon_registry.clear()
+    alliance_registry.clear()
     save_json_file(FIGHT_FILE, fight_records)
     await interaction.response.send_message("🔥 All fight history has been wiped.")
 
@@ -2517,6 +2706,67 @@ class DeleteDragonRegistryModal(SafeModal):
         )
 
 
+class AllianceModal(SafeModal):
+    def __init__(self, mode: str):
+        super().__init__(title="Add/Edit Alliance" if mode == "set" else "Delete Alliance")
+        self.mode = mode
+        self.name = discord.ui.TextInput(label="Character name", placeholder="Example: Anya Greyson", required=True, max_length=100)
+        self.add_item(self.name)
+        if mode == "set":
+            self.alliance = discord.ui.TextInput(label="Alliance", placeholder="Rebellion or Navarre", required=True, max_length=20)
+            self.add_item(self.alliance)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        name = str(self.name.value).strip()
+        if self.mode == "set":
+            alliance = str(self.alliance.value).strip().title()
+            entry = set_alliance_entry(name, alliance)
+            if entry is None:
+                await interaction.response.send_message("Alliance must be **Rebellion** or **Navarre**.", ephemeral=True)
+                return
+            await interaction.response.send_message("⚔️ **Alliance saved.**\n" + format_alliance_entry(entry), ephemeral=True)
+        else:
+            removed = delete_alliance_entry(name)
+            if removed is None:
+                await interaction.response.send_message(f"No alliance entry found for **{name}**.", ephemeral=True)
+                return
+            await interaction.response.send_message("🗑️ **Alliance deleted.**\n" + format_alliance_entry(removed), ephemeral=True)
+
+
+class ManualReassignNameModal(SafeModal):
+    def __init__(self, quadrant: str, selections: dict[str, str | None]):
+        super().__init__(title=f"Reassign: {quadrant.title()}")
+        self.quadrant = quadrant
+        self.selections = selections
+        self.name_input = discord.ui.TextInput(label="Character name", placeholder="Example: Mira Damaris", required=True, max_length=100)
+        self.add_item(self.name_input)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        name = str(self.name_input.value).strip()
+        if self.quadrant == "rider":
+            await call_command(slash_moverider, interaction, name,
+                app_commands.Choice(name=self.selections.get("role"), value=self.selections.get("role")),
+                app_commands.Choice(name=self.selections.get("wing"), value=self.selections.get("wing")),
+                app_commands.Choice(name=self.selections.get("section"), value=self.selections.get("section")) if self.selections.get("section") else None,
+                app_commands.Choice(name=self.selections.get("squad"), value=self.selections.get("squad")) if self.selections.get("squad") else None,
+            )
+        elif self.quadrant == "infantry":
+            await call_command(slash_moveinfantry, interaction, name,
+                app_commands.Choice(name=self.selections.get("role"), value=self.selections.get("role")),
+                app_commands.Choice(name=self.selections.get("division"), value=self.selections.get("division")) if self.selections.get("division") else None,
+            )
+        elif self.quadrant == "scribe":
+            await call_command(slash_movescribe, interaction, name,
+                app_commands.Choice(name=self.selections.get("role"), value=self.selections.get("role")),
+                app_commands.Choice(name=self.selections.get("order"), value=self.selections.get("order")) if self.selections.get("order") else None,
+            )
+        elif self.quadrant == "healer":
+            await call_command(slash_movehealer, interaction, name,
+                app_commands.Choice(name=self.selections.get("role"), value=self.selections.get("role")),
+                app_commands.Choice(name=self.selections.get("circle"), value=self.selections.get("circle")) if self.selections.get("circle") else None,
+            )
+
+
 class DiceModal(SafeModal):
     def __init__(self):
         super().__init__(title="Roll Dice")
@@ -2599,9 +2849,10 @@ class ManualNameModal(SafeModal):
 
 
 class ManualAssignView(SafeView):
-    def __init__(self, quadrant: str):
+    def __init__(self, quadrant: str, reassign: bool = False):
         super().__init__(timeout=240)
         self.quadrant = quadrant
+        self.reassign = reassign
         self.selections: dict[str, str | None] = {}
         if quadrant == "rider":
             self.add_item(SimpleSelect("role", "Choose rider role", [c.name for c in RIDER_ROLE_CHOICES]))
@@ -2625,7 +2876,10 @@ class ManualAssignView(SafeView):
         if missing:
             await interaction.response.send_message(f"Pick this first: {', '.join(missing)}", ephemeral=True)
             return
-        await interaction.response.send_modal(ManualNameModal(self.quadrant, self.selections))
+        if self.reassign:
+            await interaction.response.send_modal(ManualReassignNameModal(self.quadrant, self.selections))
+        else:
+            await interaction.response.send_modal(ManualNameModal(self.quadrant, self.selections))
 
 
 class CharacterRandomizeView(SafeView):
@@ -2665,6 +2919,10 @@ class RosterLookupPanelView(SafeView):
     async def simple(self, interaction, button): await call_command(slash_roster, interaction, app_commands.Choice(name="Simple", value="simple"))
     @discord.ui.button(label="Look Up Character", style=discord.ButtonStyle.secondary)
     async def whois(self, interaction, button): await interaction.response.send_modal(NameModal("Character Lookup", "Character name", slash_whois))
+    @discord.ui.button(label="Add/Edit Alliance", style=discord.ButtonStyle.secondary)
+    async def alliance(self, interaction, button): await interaction.response.send_modal(AllianceModal("set"))
+    @discord.ui.button(label="Delete Alliance", style=discord.ButtonStyle.danger)
+    async def delete_alliance(self, interaction, button): await interaction.response.send_modal(AllianceModal("delete"))
     @discord.ui.button(label="Rider Formation", style=discord.ButtonStyle.secondary)
     async def riderslots(self, interaction, button): await call_command(slash_riderslots, interaction)
     @discord.ui.button(label="Infantry Formation", style=discord.ButtonStyle.secondary)
@@ -2699,13 +2957,21 @@ class AssignFormationRolesPanelView(SafeView):
 class ReassignCharactersPanelView(SafeView):
     def __init__(self): super().__init__(timeout=240)
     @discord.ui.button(label="Reassign Rider", style=discord.ButtonStyle.primary)
-    async def rider(self, interaction, button): await interaction.response.send_modal(NameModal("Reassign Rider", "Character name", slash_reassignrider))
+    async def rider(self, interaction, button): await interaction.response.send_message("**Reassign Rider**\nChoose the exact new role, wing, section, and squad if needed.", view=ManualAssignView("rider", reassign=True), ephemeral=True)
     @discord.ui.button(label="Reassign Infantry", style=discord.ButtonStyle.primary)
-    async def infantry(self, interaction, button): await interaction.response.send_modal(NameModal("Reassign Infantry", "Character name", slash_reassigninfantry))
+    async def infantry(self, interaction, button): await interaction.response.send_message("**Reassign Infantry**\nChoose the exact new role and division if needed.", view=ManualAssignView("infantry", reassign=True), ephemeral=True)
     @discord.ui.button(label="Reassign Scribe", style=discord.ButtonStyle.primary)
-    async def scribe(self, interaction, button): await interaction.response.send_modal(NameModal("Reassign Scribe", "Character name", slash_reassignscribe))
+    async def scribe(self, interaction, button): await interaction.response.send_message("**Reassign Scribe**\nChoose the exact new role and order if needed.", view=ManualAssignView("scribe", reassign=True), ephemeral=True)
     @discord.ui.button(label="Reassign Healer", style=discord.ButtonStyle.primary)
-    async def healer(self, interaction, button): await interaction.response.send_modal(NameModal("Reassign Healer", "Character name", slash_reassignhealer))
+    async def healer(self, interaction, button): await interaction.response.send_message("**Reassign Healer**\nChoose the exact new role and circle if needed.", view=ManualAssignView("healer", reassign=True), ephemeral=True)
+    @discord.ui.button(label="Random Reassign Rider", style=discord.ButtonStyle.secondary)
+    async def random_rider(self, interaction, button): await interaction.response.send_modal(NameModal("Random Reassign Rider", "Character name", slash_reassignrider))
+    @discord.ui.button(label="Random Reassign Infantry", style=discord.ButtonStyle.secondary)
+    async def random_infantry(self, interaction, button): await interaction.response.send_modal(NameModal("Random Reassign Infantry", "Character name", slash_reassigninfantry))
+    @discord.ui.button(label="Random Reassign Scribe", style=discord.ButtonStyle.secondary)
+    async def random_scribe(self, interaction, button): await interaction.response.send_modal(NameModal("Random Reassign Scribe", "Character name", slash_reassignscribe))
+    @discord.ui.button(label="Random Reassign Healer", style=discord.ButtonStyle.secondary)
+    async def random_healer(self, interaction, button): await interaction.response.send_modal(NameModal("Random Reassign Healer", "Character name", slash_reassignhealer))
 
 class SpecialtyDragonPanelView(SafeView):
     def __init__(self): super().__init__(timeout=240)
@@ -2792,14 +3058,14 @@ class DeleteCharacterPanelView(SafeView):
 
 class MainPanelView(SafeView):
     def __init__(self): super().__init__(timeout=300)
-    @discord.ui.button(label="Roster + Look Up", style=discord.ButtonStyle.primary, row=0)
-    async def roster(self, interaction, button): await interaction.response.send_message("**Roster + Look Up**", view=RosterLookupPanelView(), ephemeral=True)
-    @discord.ui.button(label="Manual Assign A Character", style=discord.ButtonStyle.primary, row=0)
-    async def manual(self, interaction, button): await interaction.response.send_message("**Manual Assign A Character**", view=ManualAssignCharacterPanelView(), ephemeral=True)
-    @discord.ui.button(label="Assign Formation Roles", style=discord.ButtonStyle.primary, row=0)
-    async def assign(self, interaction, button): await interaction.response.send_message("**Assign Formation Roles**", view=AssignFormationRolesPanelView(), ephemeral=True)
-    @discord.ui.button(label="Reassign Characters - Random", style=discord.ButtonStyle.primary, row=0)
-    async def reassign(self, interaction, button): await interaction.response.send_message("**Reassign Characters - Random**", view=ReassignCharactersPanelView(), ephemeral=True)
+    @discord.ui.button(label="Rosters", style=discord.ButtonStyle.primary, row=0)
+    async def roster(self, interaction, button): await interaction.response.send_message("**Rosters**", view=RosterLookupPanelView(), ephemeral=True)
+    @discord.ui.button(label="Assign Character", style=discord.ButtonStyle.primary, row=0)
+    async def manual(self, interaction, button): await interaction.response.send_message("**Assign Character**", view=ManualAssignCharacterPanelView(), ephemeral=True)
+    @discord.ui.button(label="Randomize Character", style=discord.ButtonStyle.primary, row=0)
+    async def assign(self, interaction, button): await interaction.response.send_message("**Randomize Character**", view=AssignFormationRolesPanelView(), ephemeral=True)
+    @discord.ui.button(label="Reassign Characters", style=discord.ButtonStyle.primary, row=0)
+    async def reassign(self, interaction, button): await interaction.response.send_message("**Reassign Characters**", view=ReassignCharactersPanelView(), ephemeral=True)
     @discord.ui.button(label="Roll for Specialty/Dragon", style=discord.ButtonStyle.primary, row=0)
     async def specialty(self, interaction, button): await interaction.response.send_message("**Roll for Specialty/Dragon**", view=SpecialtyDragonPanelView(), ephemeral=True)
     @discord.ui.button(label="Roll for Signet", style=discord.ButtonStyle.primary, row=1)
@@ -2856,7 +3122,10 @@ def build_slash_help_text():
         "`/registerdragon` : Add a rider, signet, and dragon to the registry\n"
         "`/editdragon` : Edit a registered dragon or signet\n"
         "`/deletedragon` : Delete a dragon registry entry\n"
-        "`/dragonregistry` : View the full dragon registry alphabetically\n\n"
+        "`/dragonregistry` : View the full dragon registry alphabetically\n"
+        "`/setalliance` : Add or edit Rebellion/Navarre for a character\n"
+        "`/deletealliance` : Delete a saved alliance entry\n"
+        "`/whois` : See everything entered for a character\n\n"
 
         "**Formations**\n\n"
 
@@ -2951,20 +3220,22 @@ async def slash_help(interaction: discord.Interaction):
 @bot.tree.command(name="hardreset", description="Reset everything: formations and fight records")
 @app_commands.checks.has_permissions(administrator=True)
 async def slash_hardreset(interaction: discord.Interaction):
-    global rider_data, infantry_data, scribe_data, healer_data, fight_records, dragon_registry
+    global rider_data, infantry_data, scribe_data, healer_data, fight_records, dragon_registry, alliance_registry
     rider_data = copy.deepcopy(DEFAULT_RIDER_STRUCTURE)
     infantry_data = copy.deepcopy(DEFAULT_INFANTRY_STRUCTURE)
     scribe_data = copy.deepcopy(DEFAULT_SCRIBE_STRUCTURE)
     healer_data = copy.deepcopy(DEFAULT_HEALER_STRUCTURE)
     fight_records.clear()
     dragon_registry.clear()
+    alliance_registry.clear()
     save_json_file(RIDER_FILE, rider_data)
     save_json_file(INFANTRY_FILE, infantry_data)
     save_json_file(SCRIBE_FILE, scribe_data)
     save_json_file(HEALER_FILE, healer_data)
     save_json_file(FIGHT_FILE, fight_records)
     save_json_file(DRAGON_REGISTRY_FILE, dragon_registry)
-    await interaction.response.send_message("🔥 **Hard reset complete.** All formations, fight records, and dragon registry entries have been wiped.")
+    save_json_file(ALLIANCE_FILE, alliance_registry)
+    await interaction.response.send_message("🔥 **Hard reset complete.** All formations, fight records, dragon registry entries, and alliance entries have been wiped.")
 
 @slash_hardreset.error
 @slash_clearfights.error
