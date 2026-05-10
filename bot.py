@@ -968,6 +968,39 @@ def register_dragon_entry(name: str, signet: str, dragon_name: str, dragon_gende
     return dragon_registry[key]
 
 
+def edit_dragon_entry(name: str, signet: str = None, dragon_name: str = None, dragon_gender: str = None, dragon_color_tail: str = None):
+    global dragon_registry
+    key = normalize_name(name)
+    if key not in dragon_registry:
+        return None
+
+    entry = dragon_registry[key]
+
+    if signet is not None and str(signet).strip():
+        entry["signet"] = str(signet).strip()
+    if dragon_name is not None and str(dragon_name).strip():
+        entry["dragon_name"] = str(dragon_name).strip()
+    if dragon_gender is not None and str(dragon_gender).strip():
+        entry["dragon_gender"] = str(dragon_gender).strip()
+    if dragon_color_tail is not None and str(dragon_color_tail).strip():
+        entry["dragon_color_tail"] = str(dragon_color_tail).strip()
+
+    entry["updated_at"] = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+    save_json_file(DRAGON_REGISTRY_FILE, dragon_registry)
+    return entry
+
+
+def delete_dragon_entry(name: str):
+    global dragon_registry
+    key = normalize_name(name)
+    if key not in dragon_registry:
+        return None
+
+    removed = dragon_registry.pop(key)
+    save_json_file(DRAGON_REGISTRY_FILE, dragon_registry)
+    return removed
+
+
 def format_dragon_entry(entry: dict) -> str:
     return (
         f"**{entry['name']}**: {entry['signet']}\n"
@@ -1792,6 +1825,45 @@ async def slash_dragonregistry(interaction: discord.Interaction):
     await send_chunks_interaction(interaction, format_dragon_registry())
 
 
+@bot.tree.command(name="editdragon", description="Edit a registered rider signet or dragon")
+@app_commands.describe(
+    name="Character name already in the registry",
+    signet="New signet. Leave blank to keep current signet.",
+    dragon_name="New dragon name. Leave blank to keep current dragon name.",
+    dragon_gender="New dragon gender. Leave blank to keep current gender.",
+    dragon_color_tail="New dragon color and tail. Leave blank to keep current color/tail."
+)
+async def slash_editdragon(
+    interaction: discord.Interaction,
+    name: str,
+    signet: str = None,
+    dragon_name: str = None,
+    dragon_gender: str = None,
+    dragon_color_tail: str = None
+):
+    entry = edit_dragon_entry(name, signet, dragon_name, dragon_gender, dragon_color_tail)
+    if entry is None:
+        await interaction.response.send_message(f"No dragon registry entry found for **{name}**.", ephemeral=True)
+        return
+
+    await interaction.response.send_message(
+        "🐉 **Dragon registry updated.**\n" + format_dragon_entry(entry)
+    )
+
+
+@bot.tree.command(name="deletedragon", description="Delete a rider, signet, and dragon from the registry")
+@app_commands.describe(name="Character name to remove from the registry")
+async def slash_deletedragon(interaction: discord.Interaction, name: str):
+    removed = delete_dragon_entry(name)
+    if removed is None:
+        await interaction.response.send_message(f"No dragon registry entry found for **{name}**.", ephemeral=True)
+        return
+
+    await interaction.response.send_message(
+        "🗑️ **Dragon registry entry deleted.**\n" + format_dragon_entry(removed)
+    )
+
+
 @bot.tree.command(name="random", description="Choose one randomizer from a dropdown")
 @app_commands.choices(kind=RANDOM_CHOICES)
 async def slash_random(interaction: discord.Interaction, kind: app_commands.Choice[str]):
@@ -2389,6 +2461,62 @@ class DragonRegistryModal(SafeModal):
         )
 
 
+class EditDragonRegistryModal(SafeModal):
+    def __init__(self):
+        super().__init__(title="Edit Dragon / Signet")
+        self.name = discord.ui.TextInput(label="Name", placeholder="Character already in registry", required=True, max_length=100)
+        self.signet = discord.ui.TextInput(label="New signet", placeholder="Leave blank to keep current", required=False, max_length=100)
+        self.dragon_name = discord.ui.TextInput(label="New dragon name", placeholder="Leave blank to keep current", required=False, max_length=100)
+        self.dragon_gender = discord.ui.TextInput(label="New dragon gender", placeholder="Leave blank to keep current", required=False, max_length=50)
+        self.dragon_color_tail = discord.ui.TextInput(label="New dragon color / tail", placeholder="Leave blank to keep current", required=False, max_length=100)
+        self.add_item(self.name)
+        self.add_item(self.signet)
+        self.add_item(self.dragon_name)
+        self.add_item(self.dragon_gender)
+        self.add_item(self.dragon_color_tail)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        entry = edit_dragon_entry(
+            str(self.name.value),
+            str(self.signet.value),
+            str(self.dragon_name.value),
+            str(self.dragon_gender.value),
+            str(self.dragon_color_tail.value)
+        )
+        if entry is None:
+            await interaction.response.send_message(
+                f"No dragon registry entry found for **{str(self.name.value).strip()}**.",
+                ephemeral=True
+            )
+            return
+
+        await interaction.response.send_message(
+            "🐉 **Dragon registry updated.**\n" + format_dragon_entry(entry),
+            ephemeral=True
+        )
+
+
+class DeleteDragonRegistryModal(SafeModal):
+    def __init__(self):
+        super().__init__(title="Delete Dragon / Signet")
+        self.name = discord.ui.TextInput(label="Name", placeholder="Character name to delete", required=True, max_length=100)
+        self.add_item(self.name)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        removed = delete_dragon_entry(str(self.name.value))
+        if removed is None:
+            await interaction.response.send_message(
+                f"No dragon registry entry found for **{str(self.name.value).strip()}**.",
+                ephemeral=True
+            )
+            return
+
+        await interaction.response.send_message(
+            "🗑️ **Dragon registry entry deleted.**\n" + format_dragon_entry(removed),
+            ephemeral=True
+        )
+
+
 class DiceModal(SafeModal):
     def __init__(self):
         super().__init__(title="Roll Dice")
@@ -2692,11 +2820,15 @@ class MainPanelView(SafeView):
     async def register_dragon(self, interaction, button): await interaction.response.send_modal(DragonRegistryModal())
     @discord.ui.button(label="View Dragon Registry", style=discord.ButtonStyle.secondary, row=3)
     async def view_dragon_registry(self, interaction, button): await send_chunks_interaction(interaction, format_dragon_registry(), ephemeral=True)
+    @discord.ui.button(label="Edit Dragon/Signet", style=discord.ButtonStyle.secondary, row=4)
+    async def edit_dragon_registry(self, interaction, button): await interaction.response.send_modal(EditDragonRegistryModal())
+    @discord.ui.button(label="Delete Dragon/Signet", style=discord.ButtonStyle.danger, row=4)
+    async def delete_dragon_registry(self, interaction, button): await interaction.response.send_modal(DeleteDragonRegistryModal())
     @discord.ui.button(label="Help Guide", style=discord.ButtonStyle.danger, row=3)
     async def help(self, interaction, button): await send_chunks_interaction(interaction, build_slash_help_text(), ephemeral=True)
 
 
-PANEL_MESSAGE = "⚔️ **Basgiath Control Panel**\nBlue = roster/assign/randomizing. Green = combat/challenges/reactions/dice. Gray = dragon registry. Red = delete/help."
+PANEL_MESSAGE = "⚔️ **Basgiath Control Panel**\nBlue = roster/assign/randomizing. Green = combat/challenges/reactions/dice. Gray = dragon registry/editing. Red = delete/help."
 
 @bot.tree.command(name="panel", description="Open a private Basgiath button control panel")
 async def slash_panel(interaction: discord.Interaction):
@@ -2719,7 +2851,12 @@ async def slash_dashboard(interaction: discord.Interaction):
 def build_slash_help_text():
     help_text = (
         "📖 **Basgiath Slash Command Guide**\n\n"
-        "`/panel` : Open button menu for manual assign, random characters, randomizers, roster, and help\n\n"
+        "`/panel` : Open private button menu for manual assign, random characters, randomizers, roster, registry, and help\n"
+        "`/dashboard` : Post the public button dashboard\n"
+        "`/registerdragon` : Add a rider, signet, and dragon to the registry\n"
+        "`/editdragon` : Edit a registered dragon or signet\n"
+        "`/deletedragon` : Delete a dragon registry entry\n"
+        "`/dragonregistry` : View the full dragon registry alphabetically\n\n"
 
         "**Formations**\n\n"
 
