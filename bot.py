@@ -2744,29 +2744,43 @@ class DeleteDragonRegistryModal(SafeModal):
 
 class AllianceModal(SafeModal):
     def __init__(self, mode: str):
-        super().__init__(title="Add/Edit Alliance" if mode == "set" else "Delete Alliance")
+        titles = {
+            "add": "Add Alliance",
+            "edit": "Edit Alliance",
+            "delete": "Delete Alliance",
+            "random": "Randomize Alliance",
+            "set": "Add/Edit Alliance",
+        }
+        super().__init__(title=titles.get(mode, "Alliance"))
         self.mode = mode
         self.name = discord.ui.TextInput(label="Character name", placeholder="Example: Anya Greyson", required=True, max_length=100)
         self.add_item(self.name)
-        if mode == "set":
+        if mode in {"add", "edit", "set"}:
             self.alliance = discord.ui.TextInput(label="Alliance", placeholder="Rebellion or Navarre", required=True, max_length=20)
             self.add_item(self.alliance)
 
     async def on_submit(self, interaction: discord.Interaction):
         name = str(self.name.value).strip()
-        if self.mode == "set":
+
+        if self.mode in {"add", "edit", "set"}:
             alliance = str(self.alliance.value).strip().title()
             entry = set_alliance_entry(name, alliance)
             if entry is None:
                 await interaction.response.send_message("Alliance must be **Rebellion** or **Navarre**.", ephemeral=True)
                 return
             await interaction.response.send_message("⚔️ **Alliance saved.**\n" + format_alliance_entry(entry), ephemeral=True)
-        else:
-            removed = delete_alliance_entry(name)
-            if removed is None:
-                await interaction.response.send_message(f"No alliance entry found for **{name}**.", ephemeral=True)
-                return
-            await interaction.response.send_message("🗑️ **Alliance deleted.**\n" + format_alliance_entry(removed), ephemeral=True)
+            return
+
+        if self.mode == "random":
+            entry = set_alliance_entry(name, random.choice(ALLIANCES))
+            await interaction.response.send_message("🎲 **Alliance randomized.**\n" + format_alliance_entry(entry), ephemeral=True)
+            return
+
+        removed = delete_alliance_entry(name)
+        if removed is None:
+            await interaction.response.send_message(f"No alliance entry found for **{name}**.", ephemeral=True)
+            return
+        await interaction.response.send_message("🗑️ **Alliance deleted.**\n" + format_alliance_entry(removed), ephemeral=True)
 
 
 class ManualReassignNameModal(SafeModal):
@@ -2955,10 +2969,6 @@ class RosterLookupPanelView(SafeView):
     async def simple(self, interaction, button): await call_command(slash_roster, interaction, app_commands.Choice(name="Simple", value="simple"))
     @discord.ui.button(label="Look Up Character", style=discord.ButtonStyle.secondary)
     async def whois(self, interaction, button): await interaction.response.send_modal(NameModal("Character Lookup", "Character name", slash_whois))
-    @discord.ui.button(label="Add/Edit Alliance", style=discord.ButtonStyle.secondary)
-    async def alliance(self, interaction, button): await interaction.response.send_modal(AllianceModal("set"))
-    @discord.ui.button(label="Delete Alliance", style=discord.ButtonStyle.danger)
-    async def delete_alliance(self, interaction, button): await interaction.response.send_modal(AllianceModal("delete"))
     @discord.ui.button(label="Rider Formation", style=discord.ButtonStyle.secondary)
     async def riderslots(self, interaction, button): await call_command(slash_riderslots, interaction)
     @discord.ui.button(label="Infantry Formation", style=discord.ButtonStyle.secondary)
@@ -2978,6 +2988,8 @@ class ManualAssignCharacterPanelView(SafeView):
     async def scribe(self, interaction, button): await interaction.response.send_message("**Manual Assign Scribe**\nChoose role and order if needed.", view=ManualAssignView("scribe"), ephemeral=True)
     @discord.ui.button(label="Manual Assign Healer", style=discord.ButtonStyle.primary)
     async def healer(self, interaction, button): await interaction.response.send_message("**Manual Assign Healer**\nChoose role and circle if needed.", view=ManualAssignView("healer"), ephemeral=True)
+    @discord.ui.button(label="Randomize Character", style=discord.ButtonStyle.primary)
+    async def random_character(self, interaction, button): await interaction.response.send_message("**Randomize Character**", view=CharacterRandomizeView(), ephemeral=True)
 
 class AssignFormationRolesPanelView(SafeView):
     def __init__(self): super().__init__(timeout=240)
@@ -3092,47 +3104,64 @@ class DeleteCharacterPanelView(SafeView):
     @discord.ui.button(label="Remove Healer", style=discord.ButtonStyle.danger)
     async def healer(self, interaction, button): await interaction.response.send_modal(NameModal("Remove Healer", "Character name", slash_removehealer))
 
+class AlliancePanelView(SafeView):
+    def __init__(self): super().__init__(timeout=240)
+    @discord.ui.button(label="Add Alliance", style=discord.ButtonStyle.primary)
+    async def add_alliance(self, interaction, button): await interaction.response.send_modal(AllianceModal("add"))
+    @discord.ui.button(label="Edit Alliance", style=discord.ButtonStyle.primary)
+    async def edit_alliance(self, interaction, button): await interaction.response.send_modal(AllianceModal("edit"))
+    @discord.ui.button(label="Delete Alliance", style=discord.ButtonStyle.primary)
+    async def delete_alliance(self, interaction, button): await interaction.response.send_modal(AllianceModal("delete"))
+    @discord.ui.button(label="Randomize Alliance", style=discord.ButtonStyle.primary)
+    async def randomize_alliance(self, interaction, button): await interaction.response.send_modal(AllianceModal("random"))
+    @discord.ui.button(label="View Alliances", style=discord.ButtonStyle.primary)
+    async def view_alliances(self, interaction, button): await send_chunks_interaction(interaction, format_alliance_registry(), ephemeral=True)
+
 class MainPanelView(SafeView):
     def __init__(self): super().__init__(timeout=300)
+
+    # BLUE BUTTONS: main roster/character/alliance controls
     @discord.ui.button(label="Rosters", style=discord.ButtonStyle.primary, row=0)
     async def roster(self, interaction, button): await interaction.response.send_message("**Rosters**", view=RosterLookupPanelView(), ephemeral=True)
     @discord.ui.button(label="Assign Character", style=discord.ButtonStyle.primary, row=0)
     async def manual(self, interaction, button): await interaction.response.send_message("**Assign Character**", view=ManualAssignCharacterPanelView(), ephemeral=True)
-    @discord.ui.button(label="Randomize Character", style=discord.ButtonStyle.primary, row=0)
-    async def assign(self, interaction, button): await interaction.response.send_message("**Randomize Character**", view=AssignFormationRolesPanelView(), ephemeral=True)
     @discord.ui.button(label="Reassign Characters", style=discord.ButtonStyle.primary, row=0)
     async def reassign(self, interaction, button): await interaction.response.send_message("**Reassign Characters**", view=ReassignCharactersPanelView(), ephemeral=True)
-    @discord.ui.button(label="Roll for Specialty/Dragon", style=discord.ButtonStyle.primary, row=0)
-    async def specialty(self, interaction, button): await interaction.response.send_message("**Roll for Specialty/Dragon**", view=SpecialtyDragonPanelView(), ephemeral=True)
-    @discord.ui.button(label="Roll for Signet", style=discord.ButtonStyle.primary, row=1)
-    async def signet(self, interaction, button): await call_command(slash_signet, interaction)
+    @discord.ui.button(label="Alliance", style=discord.ButtonStyle.primary, row=0)
+    async def alliance(self, interaction, button): await interaction.response.send_message("**Alliance**", view=AlliancePanelView(), ephemeral=True)
+
+    # GREEN BUTTONS: combat/challenges/reactions/dice
     @discord.ui.button(label="Combat", style=discord.ButtonStyle.success, row=1)
     async def combat(self, interaction, button): await interaction.response.send_message("**Combat**", view=CombatPanelView(), ephemeral=True)
     @discord.ui.button(label="Mat Challenges", style=discord.ButtonStyle.success, row=1)
     async def mats(self, interaction, button): await interaction.response.send_message("**Mat Challenges**", view=MatChallengesPanelView(), ephemeral=True)
     @discord.ui.button(label="Gauntlet", style=discord.ButtonStyle.success, row=1)
     async def gauntlet(self, interaction, button): await interaction.response.send_message("**Gauntlet**", view=GauntletPanelView(), ephemeral=True)
-    @discord.ui.button(label="Dragon Reactions", style=discord.ButtonStyle.success, row=2)
+    @discord.ui.button(label="Dragon Reactions", style=discord.ButtonStyle.success, row=1)
     async def dragon_reactions(self, interaction, button): await interaction.response.send_message("**Dragon Reactions**", view=DragonReactionsPanelView(), ephemeral=True)
-    @discord.ui.button(label="Dice", style=discord.ButtonStyle.success, row=2)
+    @discord.ui.button(label="Dice", style=discord.ButtonStyle.success, row=1)
     async def dice(self, interaction, button): await interaction.response.send_message("**Dice**", view=DicePanelView(), ephemeral=True)
-    @discord.ui.button(label="Delete Character", style=discord.ButtonStyle.danger, row=2)
-    async def delete(self, interaction, button): await interaction.response.send_message("**Delete Character**", view=DeleteCharacterPanelView(), ephemeral=True)
-    @discord.ui.button(label="Register your dragon with /registerdragon", style=discord.ButtonStyle.secondary, row=3)
+
+    # GREY BUTTONS: specialty/dragon/signets/registry
+    @discord.ui.button(label="Roll for Specialty/Dragon", style=discord.ButtonStyle.secondary, row=2)
+    async def specialty(self, interaction, button): await interaction.response.send_message("**Roll for Specialty/Dragon**", view=SpecialtyDragonPanelView(), ephemeral=True)
+    @discord.ui.button(label="Roll for Signet", style=discord.ButtonStyle.secondary, row=2)
+    async def signet(self, interaction, button): await call_command(slash_signet, interaction)
+    @discord.ui.button(label="Register Dragon/Signet", style=discord.ButtonStyle.secondary, row=2)
     async def register_dragon(self, interaction, button): await interaction.response.send_modal(DragonRegistryModal())
-    @discord.ui.button(label="View Dragon Registry", style=discord.ButtonStyle.secondary, row=3)
+    @discord.ui.button(label="View Dragon Registry", style=discord.ButtonStyle.secondary, row=2)
     async def view_dragon_registry(self, interaction, button): await send_chunks_interaction(interaction, format_dragon_registry(), ephemeral=True)
-    @discord.ui.button(label="Alliance", style=discord.ButtonStyle.secondary, row=3)
-    async def view_alliances(self, interaction, button): await send_chunks_interaction(interaction, format_alliance_registry(), ephemeral=True)
-    @discord.ui.button(label="Edit Dragon/Signet", style=discord.ButtonStyle.secondary, row=4)
+    @discord.ui.button(label="Edit Dragon/Signet", style=discord.ButtonStyle.secondary, row=2)
     async def edit_dragon_registry(self, interaction, button): await interaction.response.send_modal(EditDragonRegistryModal())
-    @discord.ui.button(label="Delete Dragon/Signet", style=discord.ButtonStyle.danger, row=4)
+
+    # RED BUTTONS: delete controls only
+    @discord.ui.button(label="Delete Character", style=discord.ButtonStyle.danger, row=3)
+    async def delete(self, interaction, button): await interaction.response.send_message("**Delete Character**", view=DeleteCharacterPanelView(), ephemeral=True)
+    @discord.ui.button(label="Delete Dragon/Signet", style=discord.ButtonStyle.danger, row=3)
     async def delete_dragon_registry(self, interaction, button): await interaction.response.send_modal(DeleteDragonRegistryModal())
-    @discord.ui.button(label="Help Guide", style=discord.ButtonStyle.danger, row=3)
-    async def help(self, interaction, button): await send_chunks_interaction(interaction, build_slash_help_text(), ephemeral=True)
 
 
-PANEL_MESSAGE = "⚔️ **Basgiath Control Panel**\nBlue = roster/assign/randomizing. Green = combat/challenges/reactions/dice. Gray = dragon registry/editing. Red = delete/help."
+PANEL_MESSAGE = "⚔️ **Basgiath Control Panel**\nUse the buttons below to manage rosters, assignments, alliances, combat, dice, dragons, and deletes."
 
 @bot.tree.command(name="panel", description="Open a private Basgiath button control panel")
 async def slash_panel(interaction: discord.Interaction):
@@ -3155,7 +3184,7 @@ async def slash_dashboard(interaction: discord.Interaction):
 def build_slash_help_text():
     help_text = (
         "📖 **Basgiath Slash Command Guide**\n\n"
-        "`/panel` : Open private button menu for manual assign, random characters, randomizers, roster, registry, and help\n"
+        "`/panel` : Open private button menu for assignments, rosters, alliances, randomizers, and registry tools\n"
         "`/dashboard` : Post the public button dashboard\n"
         "`/registerdragon` : Add a rider, signet, and dragon to the registry\n"
         "`/editdragon` : Edit a registered dragon or signet\n"
